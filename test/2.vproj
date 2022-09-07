@@ -1,0 +1,181 @@
+config : {
+    scene_manager : {
+        next_scene_id : 1;
+        scenes : ( {
+                scene_id : 0;
+                uuid : "6146405e-603e-40ef-8044-3a5131112d15";
+                root_entity : {
+                    uuid : "049d80f9-517e-460e-86c1-0325cc86cb5d";
+                    children : ( {
+                            uuid : "c9bd0ada-1ad4-4cab-9bd0-15dd1cc2c72a";
+                            position : [ 1.4, 0.6, -2.0 ];
+                            scale : [ 0.5, 0.5, 0.5 ];
+                            type : "remote_streamer";
+                            stream : {
+                                id : 1;
+                                uuid : "59dd79b0-cf07-4fdf-907c-1f654b844b4d";
+                                width : 3840;
+                                height : 2160;
+                                exposure_algo : {
+                                    regions : ( {
+                                            left : [ 0.0, 0.0 ];
+                                            right : [ 0.0, 1.0 ];
+                                        } );
+                                };
+                                capture : {
+                                    impl : "lltp";
+                                };
+                            };
+                            raw_recorder_settings : {
+                                time_limit_sec : 300;
+                                use_ring_buffer : true;
+                                time_based_ring_buffer : true;
+                            };
+                            realtime_audio_settings : {
+                                auto_start_sender : false;
+                                use_default_capture_device : true;
+                            };
+                            net_settings : {
+                                links : ( {
+                                        destination_ip : "13.53.94.167";
+                                        destination_port : 40049;
+                                        encryption_settings : {
+                                            enable : true;
+                                            private_key_path : "C:\\Users\\AppData\\Local\\Temp\\";
+                                            allowed_public_keys : [ "asdasdasdasd=" ];
+                                            internal_source_ip : "10.0.0.1";
+                                            internal_destination_ip : "10.0.0.1";
+                                        };
+                                        p2p_settings : {
+                                            enable : true;
+                                            stun_server : "example.com:443";
+                                        };
+                                    } );
+                            };
+                        }, {
+                            id : "front_center1";
+                            uuid : "7702b4b5-b276-447d-a1ba-64fe8a04f7cf";
+                            type : "panorama_video";
+                            pv : {
+                                raw_recorder_settings : {
+                                    time_limit_sec : 300;
+                                    use_ring_buffer : true;
+                                    time_based_ring_buffer : true;
+                                };
+                                type : "flat_video_config";
+                                streams : ( {
+                                        id : 1;
+                                        uuid : "532456af-db2b-44b3-8bea-80bf4241269f";
+                                        type : "video";
+                                        width : 1280;
+                                        height : 720;
+                                        exposure_algo : {
+                                            regions : ( {
+                                                    left : [ 0.0, 0.0 ];
+                                                    right : [ 0.0, 1.0 ];
+                                                } );
+                                        };
+                                        capture : {
+                                            impl : "clone";
+                                            clone_stream : "59dd79b0-cf07-4fdf-907c-1f654b844b01";
+                                        };
+                                    } );
+                            };
+                        }, {
+                            id : "front_left1";
+                            uuid : "4fe6b664-5149-455f-bdc1-355d60f2f663";
+                            type : "panorama_video";
+                            pv : {
+                                raw_recorder_settings : {
+                                    time_limit_sec : 300;
+                                    use_ring_buffer : true;
+                                    time_based_ring_buffer : true;
+                                };
+                                type : "flat_video_config";
+                                streams : ( {
+                                        id : 1;
+                                        uuid : "b0134c56-46fa-4ca6-b27f-40baac93ea3d";
+                                        type : "video";
+                                        width : 1280;
+                                        height : 720;
+                                        exposure_algo : {
+                                            regions : ( {
+                                                    left : [ 0.0, 0.0 ];
+                                                    right : [ 0.0, 1.0 ];
+                                                } );
+                                        };
+                                        capture : {
+                                            impl : "clone";
+                                            clone_stream : "59dd79b0-cf07-4fdf-907c-1f654b844b02";
+                                        };
+                                    } );
+                            };
+                        }, {
+                            id : "front_right1";
+                            uuid : "207db3d4-4d4c-4427-8dae-b4235c9ae53f";
+                            type : "panorama_video";
+                            pv : {
+                                raw_recorder_settings : {
+                                    time_limit_sec : 300;
+                                    use_ring_buffer : true;
+                                    time_based_ring_buffer : true;
+                                };
+                                type : "flat_video_config";
+                                streams : ( {
+                                        id : 1;
+                                        uuid : "1f2b23ce-24b2-4066-95f9-c1e98301a0c4";
+                                        type : "video";
+                                        width : 405;
+                                        height : 720;
+                                        exposure_algo : {
+                                            regions : ( {
+                                                    left : [ 0.0, 0.0 ];
+                                                    right : [ 0.0, 1.0 ];
+                                                } );
+                                        };
+                                        capture : {
+                                            impl : "clone";
+                                            clone_stream : "59dd79b0-cf07-4fdf-907c-1f654b844b03";
+                                        };
+                                    } );
+                            };
+                        }, {
+                            id : "rear_center1";
+                            uuid : "eb075920-b057-46c5-b47b-c2249ab06e23";
+                            type : "panorama_video";
+                            pv : {
+                                raw_recorder_settings : {
+                                    time_limit_sec : 300;
+                                    use_ring_buffer : true;
+                                    time_based_ring_buffer : true;
+                                };
+                                type : "flat_video_config";
+                                streams : ( {
+                                        id : 1;
+                                        uuid : "df02ac5f-6c44-4145-9c76-516ffb352e5a";
+                                        type : "video";
+                                        width : 405;
+                                        height : 720;
+                                        exposure_algo : {
+                                            regions : ( {
+                                                    left : [ 0.0, 0.0 ];
+                                                    right : [ 0.0, 1.0 ];
+                                                } );
+                                        };
+                                        capture : {
+                                            impl : "clone";
+                                            clone_stream : "59dd79b0-cf07-4fdf-907c-1f654b844b04";
+                                        };
+                                    } );
+                            };
+                        } );
+                };
+            } );
+    };
+    com_manager : {
+        limit_send_rate : false;
+    };
+    raw_rec_use_ring_buffer : true;
+    raw_rec_time_based : true;
+    player_sync_source : "59dd79b0-cf07-4fdf-907c-1f654b844b4d";
+};

@@ -1,0 +1,41 @@
+config : {
+    scene_manager : {
+        next_scene_id : 1;
+        scenes : ( {
+                scene_id : 0;
+                uuid : "b70fa78a-e034-4228-5b29-deb95ea8acdd";
+                root_entity : {
+                    uuid : "a6e7b62e-e3e1-4f3c-92bf-8d871be72de3";
+                    children : ( {
+                            uuid : "4cfab06e-ed0b-46fe-c97e-66bcacd70cdf";
+                            position : [ 1.4, 0.6, -2.0 ];
+                            scale : [ 0.5, 0.5, 0.5 ];
+                            type : "remote_streamer";
+                            stream : {
+                                id : 1;
+                                uuid : "157b580a-1956-493f-c1c1-67e6d02f12eb";
+                                width : 1;
+                                height : 1;
+                                exposure_algo : {
+                                    regions : ( {
+                                            left : [ 0.0, 0.0 ];
+                                            right : [ 0.0, 1.0 ];
+                                        } );
+                                };
+                                capture : {
+                                    impl : "lltp";
+                                };
+                            };
+                            net_settings : {
+                                links : ( {
+                                        mode : "receiver";
+                                    } );
+                            };
+                        }, {
+                            uuid : "f6cd952b-d47d-4427-b61c-da7bdd960dd0";
+                            type : "encoder_test";
+                        } );
+                };
+            } );
+    };
+};

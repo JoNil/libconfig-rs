@@ -1,8 +1,13 @@
 [package]
 name = "libconfig-rs"
-version = "0.1.0"
+version = "1.0.1"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "libconfig parser in rust"
+documentation = "https://docs.rs/libconfig-rs"
+readme = "README.md"
+license = "0BSD"
+repository = "https://github.com/JoNil/libconfig-rs"
 
 [dependencies]
+nom = "7"
