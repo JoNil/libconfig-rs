@@ -96,6 +96,13 @@ mod tests {
     }
 
     #[test]
+    fn test_long() {
+        let config = "config : 4000000L;";
+        let res = super::from_str(config).unwrap();
+        assert_eq!(res, Value::Int(4000000))
+    }
+
+    #[test]
     fn test_float() {
         let config = "config : 123.1;";
         let res = dbg!(super::from_str(config).unwrap());

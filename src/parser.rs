@@ -29,16 +29,19 @@ fn boolean<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, bool,
 fn number<'a, E: ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>>(
     i: &'a str,
 ) -> IResult<&'a str, i64, E> {
-    alt((
-        map_res(
-            recognize(many1(one_of("0123456789."))),
-            |digit_str: &str| digit_str.parse::<i64>(),
-        ),
-        map_res(
-            preceded(tag("-"), recognize(many1(one_of("0123456789.")))),
-            |digit_str: &str| digit_str.parse::<i64>().map(|v| -v),
-        ),
-    ))(i)
+    terminated(
+        alt((
+            map_res(
+                recognize(many1(one_of("0123456789."))),
+                |digit_str: &str| digit_str.parse::<i64>(),
+            ),
+            map_res(
+                preceded(tag("-"), recognize(many1(one_of("0123456789.")))),
+                |digit_str: &str| digit_str.parse::<i64>().map(|v| -v),
+            ),
+        )),
+        opt(tag("L")),
+    )(i)
 }
 
 fn key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
