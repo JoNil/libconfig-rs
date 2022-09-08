@@ -105,21 +105,21 @@ mod tests {
     #[test]
     fn test_float() {
         let config = "config : 123.1;";
-        let res = dbg!(super::from_str(config).unwrap());
+        let res = super::from_str(config).unwrap();
         assert_eq!(res, Value::Float(123.1))
     }
 
     #[test]
     fn test_string() {
         let config = "config : \"Test\";";
-        let res = dbg!(super::from_str(config).unwrap());
+        let res = super::from_str(config).unwrap();
         assert_eq!(res, Value::String(String::from("Test")))
     }
 
     #[test]
     fn test_object() {
         let config = "config : { test : 123; };";
-        let res = dbg!(super::from_str(config).unwrap());
+        let res = super::from_str(config).unwrap();
 
         let mut inner = HashMap::new();
         inner.insert("test".into(), Value::Int(123));
@@ -130,7 +130,7 @@ mod tests {
     #[test]
     fn test_object_string() {
         let config = "config : { test : \"Test\"; };";
-        let res = dbg!(super::from_str(config).unwrap());
+        let res = super::from_str(config).unwrap();
 
         let mut inner = HashMap::new();
         inner.insert("test".into(), Value::String(String::from("Test")));
@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn test_list() {
         let config = "config : { test : (1, 2, 3); };";
-        let res = dbg!(super::from_str(config).unwrap());
+        let res = super::from_str(config).unwrap();
 
         let mut inner = HashMap::new();
         inner.insert(
@@ -155,7 +155,7 @@ mod tests {
     #[test]
     fn test_array() {
         let config = "config : { test : [1, 2, 3]; };";
-        let res = dbg!(super::from_str(config).unwrap());
+        let res = super::from_str(config).unwrap();
 
         let mut inner = HashMap::new();
         inner.insert(
