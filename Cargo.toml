@@ -12,3 +12,4 @@ repository = "https://github.com/JoNil/libconfig-rs"
 [dependencies]
 nom = "7"
 indexmap = "1"
+serde = "1"

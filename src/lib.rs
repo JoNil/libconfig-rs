@@ -7,6 +7,7 @@ use std::fmt::Write;
 
 mod parser;
 mod printer;
+mod serde;
 
 #[derive(Debug, PartialEq)]
 pub enum ArrayType {
