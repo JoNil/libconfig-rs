@@ -1,6 +1,6 @@
 [package]
 name = "libconfig-rs"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2021"
 
 description = "libconfig parser in rust"
