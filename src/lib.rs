@@ -1,7 +1,15 @@
+use indexmap::IndexMap;
 use nom::{error::VerboseError, Finish};
-use std::collections::HashMap;
+use std::fmt::Write;
 
 mod parser;
+mod printer;
+
+#[derive(Debug, PartialEq)]
+pub enum ArrayType {
+    Array,
+    List,
+}
 
 #[derive(Debug, PartialEq)]
 pub enum Value {
@@ -9,8 +17,8 @@ pub enum Value {
     Int(i64),
     Float(f64),
     String(String),
-    Array(Vec<Value>),
-    Object(HashMap<String, Value>),
+    Array(Vec<Value>, ArrayType),
+    Object(IndexMap<String, Value>),
 }
 
 impl Value {
@@ -49,13 +57,13 @@ impl Value {
     #[inline]
     pub fn as_vec(&self) -> Option<&Vec<Value>> {
         match self {
-            Value::Array(v) => Some(&*v),
+            Value::Array(v, _) => Some(&*v),
             _ => None,
         }
     }
 
     #[inline]
-    pub fn as_obj(&self) -> Option<&HashMap<String, Value>> {
+    pub fn as_obj(&self) -> Option<&IndexMap<String, Value>> {
         match self {
             Value::Object(v) => Some(&*v),
             _ => None,
@@ -69,16 +77,24 @@ pub fn from_str(input: &str) -> Result<Value, VerboseError<&str>> {
         .map(|(_, o)| o)
 }
 
+pub fn to_libconfig_str(value: &Value) -> String {
+    let mut res = String::new();
+    write!(&mut res, "config : ").unwrap();
+    printer::print(&mut res, value, 4);
+    write!(&mut res, ";").unwrap();
+    res
+}
+
 #[cfg(test)]
 mod tests {
     use super::Value;
-    use std::collections::HashMap;
+    use crate::ArrayType;
 
     #[test]
     fn test_empty() {
         let config = "config : {};";
         let res = super::from_str(config).unwrap();
-        assert_eq!(res, Value::Object(HashMap::new()))
+        assert_eq!(res, Value::Object(indexmap::IndexMap::new()))
     }
 
     #[test]
@@ -121,7 +137,7 @@ mod tests {
         let config = "config : { test : 123; };";
         let res = super::from_str(config).unwrap();
 
-        let mut inner = HashMap::new();
+        let mut inner = indexmap::IndexMap::new();
         inner.insert("test".into(), Value::Int(123));
 
         assert_eq!(res, Value::Object(inner))
@@ -132,7 +148,7 @@ mod tests {
         let config = "config : { test : \"Test\"; };";
         let res = super::from_str(config).unwrap();
 
-        let mut inner = HashMap::new();
+        let mut inner = indexmap::IndexMap::new();
         inner.insert("test".into(), Value::String(String::from("Test")));
 
         assert_eq!(res, Value::Object(inner))
@@ -143,10 +159,13 @@ mod tests {
         let config = "config : { test : (1, 2, 3); };";
         let res = super::from_str(config).unwrap();
 
-        let mut inner = HashMap::new();
+        let mut inner = indexmap::IndexMap::new();
         inner.insert(
             "test".into(),
-            Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)]),
+            Value::Array(
+                vec![Value::Int(1), Value::Int(2), Value::Int(3)],
+                ArrayType::List,
+            ),
         );
 
         assert_eq!(res, Value::Object(inner))
@@ -157,10 +176,13 @@ mod tests {
         let config = "config : { test : [1, 2, 3]; };";
         let res = super::from_str(config).unwrap();
 
-        let mut inner = HashMap::new();
+        let mut inner = indexmap::IndexMap::new();
         inner.insert(
             "test".into(),
-            Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)]),
+            Value::Array(
+                vec![Value::Int(1), Value::Int(2), Value::Int(3)],
+                ArrayType::Array,
+            ),
         );
 
         assert_eq!(res, Value::Object(inner))

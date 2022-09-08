@@ -1,4 +1,5 @@
-use super::Value;
+use crate::{ArrayType, Value};
+use indexmap::IndexMap;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while},
@@ -13,8 +14,6 @@ use nom::{
     sequence::{delimited, pair, preceded, separated_pair, terminated},
     IResult,
 };
-use std::collections::HashMap;
-
 mod string;
 
 fn sp<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
@@ -132,7 +131,7 @@ fn hash<
         + FromExternalError<&'a str, std::num::ParseIntError>,
 >(
     i: &'a str,
-) -> IResult<&'a str, HashMap<String, Value>, E> {
+) -> IResult<&'a str, IndexMap<String, Value>, E> {
     context(
         "map",
         preceded(
@@ -162,8 +161,8 @@ fn libconfig_value<
         sp,
         alt((
             map(hash, Value::Object),
-            map(array, Value::Array),
-            map(list, Value::Array),
+            map(array, |v| Value::Array(v, ArrayType::Array)),
+            map(list, |v| Value::Array(v, ArrayType::List)),
             map(string, Value::String),
             map(boolean, Value::Bool),
             map(number, Value::Int),
