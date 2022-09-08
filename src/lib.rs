@@ -13,6 +13,50 @@ pub enum Value {
     Object(HashMap<String, Value>),
 }
 
+impl Value {
+    pub fn as_bool(&self) -> Option<bool> {
+        match self {
+            Value::Bool(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_int(&self) -> Option<i64> {
+        match self {
+            Value::Int(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_float(&self) -> Option<f64> {
+        match self {
+            Value::Float(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            Value::String(v) => Some(&*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_vec(&self) -> Option<&Vec<Value>> {
+        match self {
+            Value::Array(v) => Some(&*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_obj(&self) -> Option<&HashMap<String, Value>> {
+        match self {
+            Value::Object(v) => Some(&*v),
+            _ => None,
+        }
+    }
+}
+
 pub fn from_str(input: &str) -> Result<Value, VerboseError<&str>> {
     parser::root::<VerboseError<&str>>(input)
         .finish()
