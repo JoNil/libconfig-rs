@@ -14,6 +14,7 @@ pub enum Value {
 }
 
 impl Value {
+    #[inline]
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             Value::Bool(v) => Some(*v),
@@ -21,6 +22,7 @@ impl Value {
         }
     }
 
+    #[inline]
     pub fn as_int(&self) -> Option<i64> {
         match self {
             Value::Int(v) => Some(*v),
@@ -28,6 +30,7 @@ impl Value {
         }
     }
 
+    #[inline]
     pub fn as_float(&self) -> Option<f64> {
         match self {
             Value::Float(v) => Some(*v),
@@ -35,6 +38,7 @@ impl Value {
         }
     }
 
+    #[inline]
     pub fn as_str(&self) -> Option<&str> {
         match self {
             Value::String(v) => Some(&*v),
@@ -42,6 +46,7 @@ impl Value {
         }
     }
 
+    #[inline]
     pub fn as_vec(&self) -> Option<&Vec<Value>> {
         match self {
             Value::Array(v) => Some(&*v),
@@ -49,6 +54,7 @@ impl Value {
         }
     }
 
+    #[inline]
     pub fn as_obj(&self) -> Option<&HashMap<String, Value>> {
         match self {
             Value::Object(v) => Some(&*v),
