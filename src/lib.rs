@@ -1,5 +1,8 @@
 use indexmap::IndexMap;
-use nom::{error::VerboseError, Finish};
+use nom::{
+    error::{ErrorKind, ParseError, VerboseError},
+    Finish,
+};
 use std::fmt::Write;
 
 mod parser;
@@ -23,25 +26,49 @@ pub enum Value {
 
 impl Value {
     #[inline]
-    pub fn as_bool(&self) -> Option<bool> {
+    pub fn as_bool(&self) -> Option<&bool> {
         match self {
-            Value::Bool(v) => Some(*v),
+            Value::Bool(v) => Some(v),
             _ => None,
         }
     }
 
     #[inline]
-    pub fn as_int(&self) -> Option<i64> {
+    pub fn as_bool_mut(&mut self) -> Option<&mut bool> {
         match self {
-            Value::Int(v) => Some(*v),
+            Value::Bool(v) => Some(v),
             _ => None,
         }
     }
 
     #[inline]
-    pub fn as_float(&self) -> Option<f64> {
+    pub fn as_int(&self) -> Option<&i64> {
         match self {
-            Value::Float(v) => Some(*v),
+            Value::Int(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn as_int_mut(&mut self) -> Option<&mut i64> {
+        match self {
+            Value::Int(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn as_float(&self) -> Option<&f64> {
+        match self {
+            Value::Float(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn as_float_mut(&mut self) -> Option<&mut f64> {
+        match self {
+            Value::Float(v) => Some(v),
             _ => None,
         }
     }
@@ -55,9 +82,25 @@ impl Value {
     }
 
     #[inline]
+    pub fn as_str_mut(&mut self) -> Option<&mut String> {
+        match self {
+            Value::String(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    #[inline]
     pub fn as_vec(&self) -> Option<&Vec<Value>> {
         match self {
-            Value::Array(v, _) => Some(&*v),
+            Value::Array(v, _) => Some(v),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn as_vec_mut(&mut self) -> Option<&mut Vec<Value>> {
+        match self {
+            Value::Array(v, _) => Some(v),
             _ => None,
         }
     }
@@ -65,7 +108,15 @@ impl Value {
     #[inline]
     pub fn as_obj(&self) -> Option<&IndexMap<String, Value>> {
         match self {
-            Value::Object(v) => Some(&*v),
+            Value::Object(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn as_obj_mut(&mut self) -> Option<&mut IndexMap<String, Value>> {
+        match self {
+            Value::Object(v) => Some(v),
             _ => None,
         }
     }
@@ -75,6 +126,18 @@ pub fn from_str(input: &str) -> Result<Value, VerboseError<&str>> {
     parser::root::<VerboseError<&str>>(input)
         .finish()
         .map(|(_, o)| o)
+}
+
+pub fn obj_from_str(input: &str) -> Result<IndexMap<String, Value>, VerboseError<&str>> {
+    parser::root::<VerboseError<&str>>(input)
+        .finish()
+        .and_then(|(_, o)| match o {
+            Value::Object(map) => Ok(map),
+            _ => Err(VerboseError::from_error_kind(
+                "Config did not have a object in the root",
+                ErrorKind::Fail,
+            )),
+        })
 }
 
 pub fn to_libconfig_str(value: &Value) -> String {
