@@ -1,7 +1,9 @@
 use crate::Value;
+use indexmap::IndexMap;
 use serde::de::{self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
 use serde::Deserialize;
 use std::fmt::{self, Display};
+use std::marker::PhantomData;
 
 #[derive(Debug)]
 pub enum Error {
@@ -24,8 +26,9 @@ impl Display for Error {
 
 impl std::error::Error for Error {}
 
-pub struct Deserializer {
+pub struct Deserializer<'de> {
     value: Value,
+    phantom: PhantomData<&'de Value>,
 }
 
 pub fn from_str<'a, T>(s: &'a str) -> Result<T, Error>
@@ -34,12 +37,15 @@ where
 {
     let value = crate::from_str(s).map_err(|e| Error::Message(format!("{e:?}")))?;
 
-    let mut deserializer = Deserializer { value };
+    let mut deserializer = Deserializer {
+        value,
+        phantom: PhantomData,
+    };
 
     T::deserialize(&mut deserializer)
 }
 
-impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer {
+impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     type Error = Error;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -239,23 +245,12 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer {
     where
         V: Visitor<'de>,
     {
-        let map = self
+        let map: &'de IndexMap<_, _> = self
             .value
             .as_obj()
-            .ok_or_else(|| Err(Error::Message("Not an object".into())))?;
+            .ok_or_else(|| Error::Message("Not an object".into()))?;
 
-        for field in fields {
-            let field = map.get(field).ok_or_else(|| {
-                Err(Error::Message(format!(
-                    "Did not find field in the input {field}"
-                )))
-            })?;
-            visitor.visit_i32(
-                field
-                    .as_int()
-                    .ok_or_else(|| Err(Error::Message(format!("Field was not an int"))))?,
-            )
-        }
+        visitor.visit_map(MapAccessor::<'de> { map, index: 0 })
     }
 
     fn deserialize_enum<V>(
@@ -282,5 +277,28 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer {
         V: Visitor<'de>,
     {
         self.deserialize_any(visitor)
+    }
+}
+
+struct MapAccessor<'de> {
+    map: &'de IndexMap<String, Value>,
+    index: i32,
+}
+
+impl<'de> MapAccess<'de> for MapAccessor<'de> {
+    type Error = Error;
+
+    fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
+    where
+        K: DeserializeSeed<'de>,
+    {
+        todo!()
+    }
+
+    fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
+    where
+        V: DeserializeSeed<'de>,
+    {
+        todo!()
     }
 }
