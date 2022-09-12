@@ -1,9 +1,91 @@
 use crate::Value;
+use generator::{done, Generator, Gn};
 use indexmap::IndexMap;
 use serde::de::{self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
 use serde::Deserialize;
 use std::fmt::{self, Display};
 use std::marker::PhantomData;
+
+#[derive(Clone, Debug)]
+enum Token {
+    Bool(bool),
+    Int(i64),
+    Float(f64),
+    String(String),
+    Identifier(String),
+}
+
+impl Token {
+    fn into_bool(self) -> Result<bool, Token> {
+        match self {
+            Token::Bool(v) => Ok(v),
+            _ => Err(self),
+        }
+    }
+
+    fn into_int(self) -> Result<i64, Token> {
+        match self {
+            Token::Int(v) => Ok(v),
+            _ => Err(self),
+        }
+    }
+
+    pub fn into_float(self) -> Result<f64, Token> {
+        match self {
+            Token::Float(v) => Ok(v),
+            _ => Err(self),
+        }
+    }
+
+    pub fn into_string(self) -> Result<String, Token> {
+        match self {
+            Token::String(v) => Ok(v),
+            _ => Err(self),
+        }
+    }
+
+    pub fn into_ident(self) -> Result<String, Token> {
+        match self {
+            Token::Identifier(v) => Ok(v),
+            _ => Err(self),
+        }
+    }
+}
+
+fn flatten<'a>(value: Value) -> Generator<'a, (), Token> {
+    Gn::new_scoped(|mut scope| {
+        match value {
+            Value::Bool(b) => {
+                scope.yield_(Token::Bool(b));
+            }
+            Value::Int(i) => {
+                scope.yield_(Token::Int(i));
+            }
+            Value::Float(f) => {
+                scope.yield_(Token::Float(f));
+            }
+            Value::String(s) => {
+                scope.yield_(Token::String(s));
+            }
+            Value::Array(a, _) => {
+                for v in a {
+                    for v in flatten(v) {
+                        scope.yield_(v);
+                    }
+                }
+            }
+            Value::Object(o) => {
+                for (k, v) in o {
+                    scope.yield_(Token::Identifier(k));
+                    for v in flatten(v) {
+                        scope.yield_(v);
+                    }
+                }
+            }
+        }
+        done!();
+    })
+}
 
 #[derive(Debug)]
 pub enum Error {
@@ -27,7 +109,7 @@ impl Display for Error {
 impl std::error::Error for Error {}
 
 pub struct Deserializer<'de> {
-    value: Value,
+    tokens: Generator<'de, (), Token>,
     phantom: PhantomData<&'de str>,
 }
 
@@ -38,7 +120,7 @@ where
     let value = crate::from_str(s).map_err(|e| Error::Message(format!("{e:?}")))?;
 
     let mut deserializer = Deserializer::<'a> {
-        value,
+        tokens: flatten(value),
         phantom: PhantomData,
     };
 
@@ -48,109 +130,239 @@ where
 impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     type Error = Error;
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        panic!("Format needs type hints!");
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_bool(
+            token
+                .into_bool()
+                .map_err(|t| Error::Message(format!("{t:?} is not a bool")))?,
+        )
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_i8(
+            token
+                .into_int()
+                .map_err(|t| Error::Message(format!("{t:?} is not a integer")))? as i8,
+        )
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_i16(
+            token
+                .into_int()
+                .map_err(|t| Error::Message(format!("{t:?} is not a integer")))? as i16,
+        )
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_i32(
+            token
+                .into_int()
+                .map_err(|t| Error::Message(format!("{t:?} is not a integer")))? as i32,
+        )
     }
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_i64(
+            token
+                .into_int()
+                .map_err(|t| Error::Message(format!("{t:?} is not a integer")))?,
+        )
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_u8(
+            token
+                .into_int()
+                .map_err(|t| Error::Message(format!("{t:?} is not a integer")))? as u8,
+        )
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_u16(
+            token
+                .into_int()
+                .map_err(|t| Error::Message(format!("{t:?} is not a integer")))? as u16,
+        )
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_u32(
+            token
+                .into_int()
+                .map_err(|t| Error::Message(format!("{t:?} is not a integer")))? as u32,
+        )
     }
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_u64(
+            token
+                .into_int()
+                .map_err(|t| Error::Message(format!("{t:?} is not a integer")))? as u64,
+        )
     }
 
-    fn deserialize_f32<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_f32(
+            token
+                .into_float()
+                .map_err(|t| Error::Message(format!("{t:?} is not a float")))? as f32,
+        )
     }
 
-    fn deserialize_f64<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_f64(
+            token
+                .into_float()
+                .map_err(|t| Error::Message(format!("{t:?} is not a float")))?,
+        )
     }
 
-    fn deserialize_char<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_char(
+            token
+                .into_string()
+                .map_err(|t| Error::Message(format!("{t:?} is not a char")))?
+                .chars()
+                .next()
+                .ok_or_else(|| Error::Message("String is empty".into()))?,
+        )
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_str(
+            token
+                .into_string()
+                .map_err(|t| Error::Message(format!("{t:?} is not a str")))?
+                .as_str(),
+        )
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        self.deserialize_str(visitor)
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_string(
+            token
+                .into_string()
+                .map_err(|t| Error::Message(format!("{t:?} is not a str")))?,
+        )
     }
 
     fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
@@ -264,7 +476,17 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        self.deserialize_str(visitor)
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        visitor.visit_str(
+            token
+                .into_ident()
+                .map_err(|t| Error::Message(format!("{t:?} is not an identifier")))?
+                .as_str(),
+        )
     }
 
     fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
