@@ -261,14 +261,14 @@ mod tests {
 
     #[test]
     fn test_vproj_1() {
-        let config = include_str!("../test/1.vproj");
+        let config = include_str!("../tests/1.vproj");
         let res = super::from_str(config).unwrap();
         assert!(matches!(res, Value::Object(_)))
     }
 
     #[test]
     fn test_vproj_2() {
-        let config = include_str!("../test/2.vproj");
+        let config = include_str!("../tests/2.vproj");
         let res = super::from_str(config).unwrap();
         assert!(matches!(res, Value::Object(_)))
     }

@@ -30,21 +30,21 @@ impl Token {
         }
     }
 
-    pub fn into_float(self) -> Result<f64, Token> {
+    fn into_float(self) -> Result<f64, Token> {
         match self {
             Token::Float(v) => Ok(v),
             _ => Err(self),
         }
     }
 
-    pub fn into_string(self) -> Result<String, Token> {
+    fn into_string(self) -> Result<String, Token> {
         match self {
             Token::String(v) => Ok(v),
             _ => Err(self),
         }
     }
 
-    pub fn into_ident(self) -> Result<String, Token> {
+    fn into_ident(self) -> Result<String, Token> {
         match self {
             Token::Identifier(v) => Ok(v),
             _ => Err(self),
