@@ -245,10 +245,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        visitor.visit_map(MapAccessor {
-            de: &mut self,
-            index: 0,
-        })
+        visitor.visit_map(MapAccessor { de: &mut self })
     }
 
     fn deserialize_enum<V>(
@@ -280,7 +277,6 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 
 struct MapAccessor<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
-    index: i32,
 }
 
 impl<'de, 'a> MapAccess<'de> for MapAccessor<'a, 'de> {
