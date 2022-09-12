@@ -290,13 +290,13 @@ impl<'de, 'a> MapAccess<'de> for MapAccessor<'a, 'de> {
     where
         K: DeserializeSeed<'de>,
     {
-        todo!() // seed.deserialize(deserializer)
+        seed.deserialize(&mut *self.de).map(Some)
     }
 
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
     where
         V: DeserializeSeed<'de>,
     {
-        todo!()
+        seed.deserialize(&mut *self.de)
     }
 }
