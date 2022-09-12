@@ -9,13 +9,13 @@ mod parser;
 mod printer;
 pub mod serde;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ArrayType {
     Array,
     List,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Bool(bool),
     Int(i64),

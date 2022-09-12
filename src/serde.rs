@@ -28,7 +28,7 @@ impl std::error::Error for Error {}
 
 pub struct Deserializer<'de> {
     value: Value,
-    phantom: PhantomData<&'de Value>,
+    phantom: PhantomData<&'de str>,
 }
 
 pub fn from_str<'a, T>(s: &'a str) -> Result<T, Error>
@@ -37,7 +37,7 @@ where
 {
     let value = crate::from_str(s).map_err(|e| Error::Message(format!("{e:?}")))?;
 
-    let mut deserializer = Deserializer {
+    let mut deserializer = Deserializer::<'a> {
         value,
         phantom: PhantomData,
     };
@@ -237,7 +237,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 
     fn deserialize_struct<V>(
-        self,
+        mut self,
         _name: &'static str,
         fields: &'static [&'static str],
         visitor: V,
@@ -245,12 +245,10 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        let map: &'de IndexMap<_, _> = self
-            .value
-            .as_obj()
-            .ok_or_else(|| Error::Message("Not an object".into()))?;
-
-        visitor.visit_map(MapAccessor::<'de> { map, index: 0 })
+        visitor.visit_map(MapAccessor {
+            de: &mut self,
+            index: 0,
+        })
     }
 
     fn deserialize_enum<V>(
@@ -280,19 +278,19 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 }
 
-struct MapAccessor<'de> {
-    map: &'de IndexMap<String, Value>,
+struct MapAccessor<'a, 'de: 'a> {
+    de: &'a mut Deserializer<'de>,
     index: i32,
 }
 
-impl<'de> MapAccess<'de> for MapAccessor<'de> {
+impl<'de, 'a> MapAccess<'de> for MapAccessor<'a, 'de> {
     type Error = Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
     where
         K: DeserializeSeed<'de>,
     {
-        todo!()
+        todo!() // seed.deserialize(deserializer)
     }
 
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
