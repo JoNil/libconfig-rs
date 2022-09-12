@@ -1,7 +1,6 @@
 use crate::Value;
 use generator::{done, Generator, Gn};
-use indexmap::IndexMap;
-use serde::de::{self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
+use serde::de::{self, DeserializeSeed, MapAccess, Visitor};
 use serde::Deserialize;
 use std::fmt::{self, Display};
 use std::marker::PhantomData;
@@ -13,6 +12,7 @@ enum Token {
     Float(f64),
     String(String),
     Identifier(String),
+    FieldCount(usize),
 }
 
 impl Token {
@@ -50,6 +50,13 @@ impl Token {
             _ => Err(self),
         }
     }
+
+    fn into_field_count(self) -> Result<usize, Token> {
+        match self {
+            Token::FieldCount(v) => Ok(v),
+            _ => Err(self),
+        }
+    }
 }
 
 fn flatten<'a>(value: Value) -> Generator<'a, (), Token> {
@@ -75,6 +82,7 @@ fn flatten<'a>(value: Value) -> Generator<'a, (), Token> {
                 }
             }
             Value::Object(o) => {
+                scope.yield_(Token::FieldCount(o.len()));
                 for (k, v) in o {
                     scope.yield_(Token::Identifier(k));
                     for v in flatten(v) {
@@ -118,6 +126,10 @@ where
     T: Deserialize<'a>,
 {
     let value = crate::from_str(s).map_err(|e| Error::Message(format!("{e:?}")))?;
+
+    for t in flatten(value.clone()) {
+        println!("{t:?}");
+    }
 
     let mut deserializer = Deserializer::<'a> {
         tokens: flatten(value),
@@ -193,6 +205,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             .tokens
             .next()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        dbg!(token.clone());
 
         visitor.visit_i32(
             token
@@ -290,6 +304,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             .next()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
+        dbg!(token.clone());
+
         visitor.visit_f32(
             token
                 .into_float()
@@ -365,14 +381,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         )
     }
 
-    fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
         unimplemented!()
     }
 
-    fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
@@ -451,13 +467,25 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     fn deserialize_struct<V>(
         mut self,
         _name: &'static str,
-        fields: &'static [&'static str],
+        _fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        visitor.visit_map(MapAccessor { de: &mut self })
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        let count = token
+            .into_field_count()
+            .map_err(|t| Error::Message(format!("Expected field count, got {t:?}")))?;
+
+        visitor.visit_map(MapAccessor {
+            de: &mut self,
+            remaining: count,
+        })
     }
 
     fn deserialize_enum<V>(
@@ -481,6 +509,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             .next()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
+        dbg!(token.clone());
+
         visitor.visit_str(
             token
                 .into_ident()
@@ -493,12 +523,13 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        self.deserialize_any(visitor)
+        unimplemented!()
     }
 }
 
 struct MapAccessor<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
+    remaining: usize,
 }
 
 impl<'de, 'a> MapAccess<'de> for MapAccessor<'a, 'de> {
@@ -508,7 +539,12 @@ impl<'de, 'a> MapAccess<'de> for MapAccessor<'a, 'de> {
     where
         K: DeserializeSeed<'de>,
     {
-        seed.deserialize(&mut *self.de).map(Some)
+        if self.remaining > 0 {
+            self.remaining -= 1;
+            seed.deserialize(&mut *self.de).map(Some)
+        } else {
+            Ok(None)
+        }
     }
 
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>

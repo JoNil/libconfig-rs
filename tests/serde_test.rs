@@ -1,6 +1,6 @@
-use serde::Deserialize;
-use std::fs;
 extern crate libconfig_rs;
+
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 struct Test {
