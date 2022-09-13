@@ -92,3 +92,19 @@ fn test5() {
         assert!(res.a == Some(2));
     }
 }
+
+#[derive(Deserialize)]
+struct Test6 {
+    _a: (),
+}
+
+#[test]
+fn test6() {
+    {
+        let config = r#"config : {
+            _a : ( );
+        };
+        "#;
+        libconfig_rs::serde::from_str::<Test6>(config).unwrap();
+    }
+}
