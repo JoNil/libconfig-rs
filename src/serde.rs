@@ -392,7 +392,18 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let len = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?
+            .into_count()
+            .map_err(|t| Error::Message(format!("{t:?} is not a count")))?;
+
+        if len == 0 {
+            visitor.visit_none()
+        } else {
+            visitor.visit_some(self)
+        }
     }
 
     fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>

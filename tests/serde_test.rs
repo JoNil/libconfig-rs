@@ -55,7 +55,7 @@ struct Test4 {
 #[test]
 fn test4() {
     let config = r#"config : {
-        a : ( 1, 2, 3);
+        a : ( 1, 2, 3 );
     };
     "#;
     let res = libconfig_rs::serde::from_str::<Test4>(config).unwrap();
@@ -63,4 +63,32 @@ fn test4() {
     assert!(res.a[0] == 1);
     assert!(res.a[1] == 2);
     assert!(res.a[2] == 3);
+}
+
+#[derive(Deserialize)]
+struct Test5 {
+    a: Option<i32>,
+}
+
+#[test]
+fn test5() {
+    {
+        let config = r#"config : {
+            a : ( );
+        };
+        "#;
+        let res = libconfig_rs::serde::from_str::<Test5>(config).unwrap();
+
+        assert!(res.a == None);
+    }
+
+    {
+        let config = r#"config : {
+            a : ( 2 );
+        };
+        "#;
+        let res = libconfig_rs::serde::from_str::<Test5>(config).unwrap();
+
+        assert!(res.a == Some(2));
+    }
 }
