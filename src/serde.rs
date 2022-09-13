@@ -1,6 +1,6 @@
 use crate::Value;
 use generator::{done, Generator, Gn};
-use serde::de::{self, DeserializeSeed, MapAccess, Visitor};
+use serde::de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde::Deserialize;
 use std::fmt::{self, Display};
 use std::marker::PhantomData;
@@ -12,7 +12,7 @@ enum Token {
     Float(f64),
     String(String),
     Identifier(String),
-    FieldCount(usize),
+    Count(usize),
 }
 
 impl Token {
@@ -51,9 +51,9 @@ impl Token {
         }
     }
 
-    fn into_field_count(self) -> Result<usize, Token> {
+    fn into_count(self) -> Result<usize, Token> {
         match self {
-            Token::FieldCount(v) => Ok(v),
+            Token::Count(v) => Ok(v),
             _ => Err(self),
         }
     }
@@ -75,6 +75,7 @@ fn flatten<'a>(value: Value) -> Generator<'a, (), Token> {
                 scope.yield_(Token::String(s));
             }
             Value::Array(a, _) => {
+                scope.yield_(Token::Count(a.len()));
                 for v in a {
                     for v in flatten(v) {
                         scope.yield_(v);
@@ -82,7 +83,7 @@ fn flatten<'a>(value: Value) -> Generator<'a, (), Token> {
                 }
             }
             Value::Object(o) => {
-                scope.yield_(Token::FieldCount(o.len()));
+                scope.yield_(Token::Count(o.len()));
                 for (k, v) in o {
                     scope.yield_(Token::Identifier(k));
                     for v in flatten(v) {
@@ -126,10 +127,6 @@ where
     T: Deserialize<'a>,
 {
     let value = crate::from_str(s).map_err(|e| Error::Message(format!("{e:?}")))?;
-
-    for t in flatten(value.clone()) {
-        println!("{t:?}");
-    }
 
     let mut deserializer = Deserializer::<'a> {
         tokens: flatten(value),
@@ -205,8 +202,6 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             .tokens
             .next()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
-
-        dbg!(token.clone());
 
         visitor.visit_i32(
             token
@@ -303,8 +298,6 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             .tokens
             .next()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
-
-        dbg!(token.clone());
 
         visitor.visit_f32(
             token
@@ -428,21 +421,44 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let len = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?
+            .into_count()
+            .map_err(|t| Error::Message(format!("{t:?} is not a count")))?;
+
+        if len != 1 {
+            return Err(Error::Message(format!(
+                "Expected 1 field in struct got {len}"
+            )));
+        }
+
+        visitor.visit_newtype_struct(self)
     }
 
-    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_seq<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let count = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?
+            .into_count()
+            .map_err(|t| Error::Message(format!("Expected field count, got {t:?}")))?;
+
+        visitor.visit_seq(SeqAccessor {
+            de: &mut self,
+            remaining: count,
+        })
     }
 
     fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        self.deserialize_seq(visitor)
     }
 
     fn deserialize_tuple_struct<V>(
@@ -454,14 +470,24 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        self.deserialize_seq(visitor)
     }
 
-    fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_map<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let count = self
+            .tokens
+            .next()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?
+            .into_count()
+            .map_err(|t| Error::Message(format!("Expected field count, got {t:?}")))?;
+
+        visitor.visit_map(MapAccessor {
+            de: &mut self,
+            remaining: count,
+        })
     }
 
     fn deserialize_struct<V>(
@@ -473,13 +499,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        let token = self
+        let count = self
             .tokens
             .next()
-            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
-
-        let count = token
-            .into_field_count()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?
+            .into_count()
             .map_err(|t| Error::Message(format!("Expected field count, got {t:?}")))?;
 
         visitor.visit_map(MapAccessor {
@@ -509,8 +533,6 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             .next()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
-        dbg!(token.clone());
-
         visitor.visit_str(
             token
                 .into_ident()
@@ -524,6 +546,27 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         unimplemented!()
+    }
+}
+
+struct SeqAccessor<'a, 'de: 'a> {
+    de: &'a mut Deserializer<'de>,
+    remaining: usize,
+}
+
+impl<'de, 'a> SeqAccess<'de> for SeqAccessor<'a, 'de> {
+    type Error = Error;
+
+    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
+    where
+        T: DeserializeSeed<'de>,
+    {
+        if self.remaining > 0 {
+            self.remaining -= 1;
+            seed.deserialize(&mut *self.de).map(Some)
+        } else {
+            Ok(None)
+        }
     }
 }
 
