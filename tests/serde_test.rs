@@ -102,9 +102,88 @@ struct Test6 {
 fn test6() {
     {
         let config = r#"config : {
-            _a : ( );
+            _a : ();
         };
         "#;
         libconfig_rs::serde::from_str::<Test6>(config).unwrap();
+    }
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+enum TestEnum1 {
+    A,
+    B,
+    C,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+enum TestEnum2 {
+    A(i32),
+    B(f32),
+    C(String),
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+enum TestEnum3 {
+    A { a: i32 },
+    B { b: f32 },
+    C { c: String },
+}
+
+#[derive(Deserialize)]
+struct Test7 {
+    a: TestEnum1,
+    b: TestEnum2,
+    c: TestEnum3,
+}
+
+#[test]
+fn test7() {
+    {
+        let config = r#"config : {
+            a : "A";
+            b : {
+                A : ( 1 );
+            };
+            c : {
+                A : { a : 1 };
+            }
+        };"#;
+        let t = libconfig_rs::serde::from_str::<Test7>(config).unwrap();
+        assert_eq!(t.a, TestEnum1::A);
+        assert_eq!(t.b, TestEnum2::A(1));
+        assert_eq!(t.c, TestEnum3::A { a: 1 });
+    }
+
+    {
+        let config = r#"config : {
+            a : "B";
+            b : {
+                B : ( 2.0 );
+            };
+            c : {
+                B : { b : 2.0 };
+            }
+        };"#;
+        let t = libconfig_rs::serde::from_str::<Test7>(config).unwrap();
+        assert_eq!(t.a, TestEnum1::B);
+        assert_eq!(t.b, TestEnum2::B(2.0));
+        assert_eq!(t.c, TestEnum3::B { b: 2.0 });
+    }
+
+    {
+        let config = r#"config : {
+            a : "C";
+            b : {
+                C : ( "3" );
+            };
+            c : {
+                C : { c : "3" };
+            }
+        };"#;
+        let t = libconfig_rs::serde::from_str::<Test7>(config).unwrap();
+        assert_eq!(t.a, TestEnum1::C);
+        assert_eq!(t.b, TestEnum2::C("3".to_owned()));
+        assert_eq!(t.c, TestEnum3::C { c: "3".to_owned() });
     }
 }
