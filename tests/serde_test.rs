@@ -146,8 +146,8 @@ fn test7() {
                 A : ( 1 );
             };
             c : {
-                A : { a : 1 };
-            }
+                A : { a : 1; };
+            };
         };"#;
         let t = libconfig_rs::serde::from_str::<Test7>(config).unwrap();
         assert_eq!(t.a, TestEnum1::A);
@@ -162,8 +162,8 @@ fn test7() {
                 B : ( 2.0 );
             };
             c : {
-                B : { b : 2.0 };
-            }
+                B : { b : 2.0; };
+            };
         };"#;
         let t = libconfig_rs::serde::from_str::<Test7>(config).unwrap();
         assert_eq!(t.a, TestEnum1::B);
@@ -178,8 +178,8 @@ fn test7() {
                 C : ( "3" );
             };
             c : {
-                C : { c : "3" };
-            }
+                C : { c : "3"; };
+            };
         };"#;
         let t = libconfig_rs::serde::from_str::<Test7>(config).unwrap();
         assert_eq!(t.a, TestEnum1::C);
