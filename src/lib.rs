@@ -9,7 +9,7 @@ mod parser;
 mod printer;
 pub mod serde;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ArrayType {
     Array,
     List,
