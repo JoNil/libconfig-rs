@@ -1,9 +1,16 @@
 use crate::Value;
 use generator::{done, Generator, Gn};
-use serde::de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor};
+use serde::de::{
+    self, DeserializeSeed, EnumAccess, IntoDeserializer, MapAccess, SeqAccess, VariantAccess,
+    Visitor,
+};
 use serde::Deserialize;
 use std::fmt::{self, Display};
 use std::marker::PhantomData;
+
+// Example
+// https://serde.rs/data-format.html
+// https://github.com/serde-rs/example-format
 
 #[derive(Clone, Debug)]
 enum Token {
@@ -11,7 +18,6 @@ enum Token {
     Int(i64),
     Float(f64),
     String(String),
-    Identifier(String),
     Count(usize),
 }
 
@@ -40,13 +46,6 @@ impl Token {
     fn into_string(self) -> Result<String, Token> {
         match self {
             Token::String(v) => Ok(v),
-            _ => Err(self),
-        }
-    }
-
-    fn into_ident(self) -> Result<String, Token> {
-        match self {
-            Token::Identifier(v) => Ok(v),
             _ => Err(self),
         }
     }
@@ -85,7 +84,7 @@ fn flatten<'a>(value: Value) -> Generator<'a, (), Token> {
             Value::Object(o) => {
                 scope.yield_(Token::Count(o.len()));
                 for (k, v) in o {
-                    scope.yield_(Token::Identifier(k));
+                    scope.yield_(Token::String(k));
                     for v in flatten(v) {
                         scope.yield_(v);
                     }
@@ -543,7 +542,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        panic!("UN")
+        visitor.visit_enum(Enum::new(self))
     }
 
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -553,14 +552,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let token = self
             .tokens
             .next()
-            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?
+            .into_string()
+            .map_err(|t| Error::Message(format!("{t:?} is not an identifier")))?;
 
-        visitor.visit_str(
-            token
-                .into_ident()
-                .map_err(|t| Error::Message(format!("{t:?} is not an identifier")))?
-                .as_str(),
-        )
+        visitor.visit_str(token.as_str())
     }
 
     fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -617,5 +613,60 @@ impl<'de, 'a> MapAccess<'de> for MapAccessor<'a, 'de> {
         V: DeserializeSeed<'de>,
     {
         seed.deserialize(&mut *self.de)
+    }
+}
+
+struct Enum<'a, 'de: 'a> {
+    de: &'a mut Deserializer<'de>,
+}
+
+impl<'a, 'de> Enum<'a, 'de> {
+    fn new(de: &'a mut Deserializer<'de>) -> Self {
+        Enum { de }
+    }
+}
+
+impl<'de, 'a> EnumAccess<'de> for Enum<'a, 'de> {
+    type Error = Error;
+    type Variant = Self;
+
+    fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant), Self::Error>
+    where
+        V: DeserializeSeed<'de>,
+    {
+        Ok((seed.deserialize(&mut *self.de)?, self))
+    }
+}
+
+impl<'de, 'a> VariantAccess<'de> for Enum<'a, 'de> {
+    type Error = Error;
+
+    fn unit_variant(self) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
+    where
+        T: DeserializeSeed<'de>,
+    {
+        seed.deserialize(self.de)
+    }
+
+    fn tuple_variant<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        de::Deserializer::deserialize_seq(self.de, visitor)
+    }
+
+    fn struct_variant<V>(
+        self,
+        _fields: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        de::Deserializer::deserialize_map(self.de, visitor)
     }
 }
