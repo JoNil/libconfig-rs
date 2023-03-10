@@ -31,11 +31,11 @@ fn number<'a, E: ParseError<&'a str> + FromExternalError<&'a str, std::num::Pars
     terminated(
         alt((
             map_res(
-                recognize(many1(one_of("0123456789."))),
+                recognize(many1(one_of("0123456789.eE"))),
                 |digit_str: &str| digit_str.parse::<i64>(),
             ),
             map_res(
-                preceded(tag("-"), recognize(many1(one_of("0123456789.")))),
+                preceded(tag("-"), recognize(many1(one_of("0123456789.eE")))),
                 |digit_str: &str| digit_str.parse::<i64>().map(|v| -v),
             ),
         )),
