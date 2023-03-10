@@ -76,7 +76,7 @@ impl Value {
     #[inline]
     pub fn as_str(&self) -> Option<&str> {
         match self {
-            Value::String(v) => Some(&*v),
+            Value::String(v) => Some(v),
             _ => None,
         }
     }
@@ -186,6 +186,13 @@ mod tests {
         let config = "config : 123.1;";
         let res = super::from_str(config).unwrap();
         assert_eq!(res, Value::Float(123.1))
+    }
+
+    #[test]
+    fn test_float_2() {
+        let config = "config : 1e-5;";
+        let res = super::from_str(config).unwrap();
+        assert_eq!(res, Value::Float(0.00001))
     }
 
     #[test]
