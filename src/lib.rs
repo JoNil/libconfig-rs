@@ -158,7 +158,7 @@ mod tests {
     fn test_empty() {
         let config = "config : {};";
         let res = super::from_str(config).unwrap();
-        assert_eq!(res, Value::Object(indexmap::IndexMap::new()))
+        assert_eq!(res, Value::Object(indexmap::IndexMap::new()));
     }
 
     #[test]
