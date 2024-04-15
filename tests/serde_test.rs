@@ -79,7 +79,7 @@ fn test5() {
         "#;
         let res = libconfig_rs::serde::from_str::<Test5>(config).unwrap();
 
-        assert!(res.a == None);
+        assert!(res.a.is_none());
     }
 
     {
