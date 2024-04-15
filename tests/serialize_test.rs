@@ -195,7 +195,6 @@ fn test_hashmap() {
     c.insert("kc".to_string(), 42);
     let test = TestHashmap { a, b, c };
     let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    println!("\n{ser}\n");
     let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
