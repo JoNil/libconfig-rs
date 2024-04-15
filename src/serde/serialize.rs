@@ -97,7 +97,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        unimplemented!()
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
@@ -151,7 +151,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     where
         T: Serialize,
     {
-        todo!()
+        unimplemented!()
     }
 
     fn serialize_newtype_variant<T: ?Sized>(
@@ -186,7 +186,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        todo!()
+        unimplemented!()
     }
 
     fn serialize_tuple_variant(
@@ -196,7 +196,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         _variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        todo!()
+        unimplemented!()
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
@@ -283,11 +283,11 @@ impl<'a> ser::SerializeTupleStruct for &'a mut Serializer {
     where
         T: Serialize,
     {
-        todo!()
+        unimplemented!()
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        unimplemented!()
     }
 }
 
@@ -300,11 +300,11 @@ impl<'a> ser::SerializeTupleVariant for &'a mut Serializer {
     where
         T: Serialize,
     {
-        todo!()
+        unimplemented!()
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        unimplemented!()
     }
 }
 
@@ -318,11 +318,13 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
         T: Serialize,
     {
         if !self.output.ends_with("( ") {
-            self.output += ", ";
+            self.output += ", ( ";
+        } else {
+            self.output += "( ";
         }
         key.serialize(&mut **self)?;
 
-        self.output += " : ";
+        self.output += " , ";
         Ok(())
     }
 
@@ -330,7 +332,6 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
     where
         T: Serialize,
     {
-        self.output += "( ";
         value.serialize(&mut **self)?;
         self.output += " )";
 

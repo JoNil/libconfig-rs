@@ -188,10 +188,14 @@ fn test_hashmap() {
     let mut b = HashMap::new();
     let mut c = HashMap::new();
     a.insert("ka".to_string(), "va".to_string());
+    a.insert("ka2".to_string(), "va2".to_string());
+    a.insert("ka3".to_string(), "va3".to_string());
     b.insert(42, "vb".to_string());
+    b.insert(35, "vb2".to_string());
     c.insert("kc".to_string(), 42);
     let test = TestHashmap { a, b, c };
     let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
+    println!("\n{ser}\n");
     let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
