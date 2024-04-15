@@ -1,5 +1,7 @@
 extern crate libconfig_rs;
 
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
@@ -333,6 +335,11 @@ struct Test13 {
     u: StructInStruct,
     v: Enum,
     x: Enum,
+    y: Enum,
+    z: Enum,
+    aa: (Struct, i32),
+    bb: Vec<i32>,
+    cc: HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -360,6 +367,8 @@ enum Enum {
 #[test]
 fn test13() {
     {
+        let mut cc = HashMap::new();
+        cc.insert("KEY".to_string(), "VALUE".to_string());
         let test = Test13 {
             a: 0,
             b: 1,
@@ -386,6 +395,11 @@ fn test13() {
             },
             v: Enum::A,
             x: Enum::B(32),
+            y: Enum::C { a: 42, b: 42.2 },
+            z: Enum::D(Struct { a: 42, b: 42.2 }),
+            aa: (Struct { a: 42, b: 42.2 }, 64),
+            bb: vec![0, 1, 2],
+            cc,
         };
         let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
         println!("{}", ser);

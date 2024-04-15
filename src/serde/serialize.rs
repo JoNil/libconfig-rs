@@ -1,4 +1,4 @@
-use serde::{de::value, ser, Serialize};
+use serde::{ser, Serialize};
 
 use super::error::Error;
 
@@ -177,10 +177,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        println!("{_len}");
-
         self.output += "[ ";
-
         Ok(self)
     }
 
@@ -203,17 +200,18 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        self.output += "{ ";
+        self.output += "( ";
         Ok(self)
     }
 
     fn serialize_struct(
         self,
         name: &'static str,
-        len: usize,
+        _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
         println!("Start Serializing struct: {name}\n");
-        self.serialize_map(Some(len))
+        self.output += "{ ";
+        Ok(self)
     }
 
     fn serialize_struct_variant(
@@ -224,7 +222,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         self.output += "{ ";
-        variant.serialize(&mut *self)?;
+        self.output += variant;
         self.output += " : { ";
 
         Ok(self)
@@ -240,13 +238,15 @@ impl<'a> ser::SerializeSeq for &'a mut Serializer {
     where
         T: Serialize,
     {
+        if !self.output.ends_with("( ") {
+            self.output += ", ";
+        }
         value.serialize(&mut **self)?;
-        self.output += "; ";
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.output.pop(); // Remove last semicolon and space
+        // self.output.pop(); // Remove last semicolon and space
         self.output += " )";
         Ok(())
     }
@@ -317,7 +317,11 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
     where
         T: Serialize,
     {
+        if !self.output.ends_with("( ") {
+            self.output += ", ";
+        }
         key.serialize(&mut **self)?;
+
         self.output += " : ";
         Ok(())
     }
@@ -326,14 +330,15 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
     where
         T: Serialize,
     {
+        self.output += "( ";
         value.serialize(&mut **self)?;
-        self.output += "; ";
+        self.output += " )";
+
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.output.pop(); // Remove last semicolon and space
-        self.output += " }";
+        self.output += " )";
         Ok(())
     }
 }
@@ -378,10 +383,10 @@ impl<'a> ser::SerializeStructVariant for &'a mut Serializer {
     where
         T: Serialize,
     {
-        key.serialize(&mut **self)?;
+        self.output += key;
         self.output += " : ";
         value.serialize(&mut **self)?;
-        self.output += ";";
+        self.output += "; ";
 
         Ok(())
     }
