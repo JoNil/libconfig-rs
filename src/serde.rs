@@ -1,12 +1,13 @@
 use crate::Value;
-use generator::{done, Generator, Gn};
-use serde::de::{
-    self, DeserializeSeed, EnumAccess, IntoDeserializer, MapAccess, SeqAccess, VariantAccess,
-    Visitor,
+use serde::{
+    de::{self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor},
+    Deserialize,
 };
-use serde::Deserialize;
-use std::fmt::{self, Display};
-use std::marker::PhantomData;
+use std::{
+    collections::VecDeque,
+    fmt::{self, Display},
+    marker::PhantomData,
+};
 
 // Example
 // https://serde.rs/data-format.html
@@ -58,41 +59,34 @@ impl Token {
     }
 }
 
-fn flatten<'a>(value: Value) -> Generator<'a, (), Token> {
-    Gn::new_scoped(|mut scope| {
-        match value {
-            Value::Bool(b) => {
-                scope.yield_(Token::Bool(b));
-            }
-            Value::Int(i) => {
-                scope.yield_(Token::Int(i));
-            }
-            Value::Float(f) => {
-                scope.yield_(Token::Float(f));
-            }
-            Value::String(s) => {
-                scope.yield_(Token::String(s));
-            }
-            Value::Array(a, _) => {
-                scope.yield_(Token::Count(a.len()));
-                for v in a {
-                    for v in flatten(v) {
-                        scope.yield_(v);
-                    }
-                }
-            }
-            Value::Object(o) => {
-                scope.yield_(Token::Count(o.len()));
-                for (k, v) in o {
-                    scope.yield_(Token::String(k));
-                    for v in flatten(v) {
-                        scope.yield_(v);
-                    }
-                }
+fn flatten(res: &mut VecDeque<Token>, value: Value) {
+    match value {
+        Value::Bool(b) => {
+            res.push_back(Token::Bool(b));
+        }
+        Value::Int(i) => {
+            res.push_back(Token::Int(i));
+        }
+        Value::Float(f) => {
+            res.push_back(Token::Float(f));
+        }
+        Value::String(s) => {
+            res.push_back(Token::String(s));
+        }
+        Value::Array(a, _) => {
+            res.push_back(Token::Count(a.len()));
+            for v in a {
+                flatten(res, v)
             }
         }
-        done!();
-    })
+        Value::Object(o) => {
+            res.push_back(Token::Count(o.len()));
+            for (k, v) in o {
+                res.push_back(Token::String(k));
+                flatten(res, v)
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -117,7 +111,7 @@ impl Display for Error {
 impl std::error::Error for Error {}
 
 pub struct Deserializer<'de> {
-    tokens: Generator<'de, (), Token>,
+    tokens: VecDeque<Token>,
     phantom: PhantomData<&'de str>,
 }
 
@@ -127,8 +121,12 @@ where
 {
     let value = crate::from_str(s).map_err(|e| Error::Message(format!("{e:?}")))?;
 
+    let mut tokens = VecDeque::new();
+
+    flatten(&mut tokens, value);
+
     let mut deserializer = Deserializer::<'a> {
-        tokens: flatten(value),
+        tokens,
         phantom: PhantomData,
     };
 
@@ -151,7 +149,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_bool(
@@ -167,7 +165,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_i8(
@@ -183,7 +181,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_i16(
@@ -199,7 +197,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_i32(
@@ -215,7 +213,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_i64(
@@ -231,7 +229,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_u8(
@@ -247,7 +245,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_u16(
@@ -263,7 +261,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_u32(
@@ -279,7 +277,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_u64(
@@ -295,7 +293,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_f32(
@@ -311,7 +309,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_f64(
@@ -327,7 +325,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_char(
@@ -346,7 +344,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_str(
@@ -363,7 +361,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
 
         visitor.visit_string(
@@ -373,14 +371,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         )
     }
 
-    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
         unimplemented!("")
     }
 
-    fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
@@ -393,7 +391,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let len = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?
             .into_count()
             .map_err(|t| Error::Message(format!("{t:?} is not a count")))?;
@@ -411,7 +409,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let len = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?
             .into_count()
             .map_err(|t| Error::Message(format!("{t:?} is not a count")))?;
@@ -444,7 +442,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let len = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?
             .into_count()
             .map_err(|t| Error::Message(format!("{t:?} is not a count")))?;
@@ -458,19 +456,19 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         visitor.visit_newtype_struct(self)
     }
 
-    fn deserialize_seq<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
         let count = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?
             .into_count()
             .map_err(|t| Error::Message(format!("Expected field count, got {t:?}")))?;
 
         visitor.visit_seq(SeqAccessor {
-            de: &mut self,
+            de: self,
             remaining: count,
         })
     }
@@ -494,25 +492,25 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         self.deserialize_seq(visitor)
     }
 
-    fn deserialize_map<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
         let count = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?
             .into_count()
             .map_err(|t| Error::Message(format!("Expected field count, got {t:?}")))?;
 
         visitor.visit_map(MapAccessor {
-            de: &mut self,
+            de: self,
             remaining: count,
         })
     }
 
     fn deserialize_struct<V>(
-        mut self,
+        self,
         _name: &'static str,
         _fields: &'static [&'static str],
         visitor: V,
@@ -522,13 +520,13 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let count = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?
             .into_count()
             .map_err(|t| Error::Message(format!("Expected field count, got {t:?}")))?;
 
         visitor.visit_map(MapAccessor {
-            de: &mut self,
+            de: self,
             remaining: count,
         })
     }
@@ -542,6 +540,10 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
+        if let Some(Token::Count(_)) = self.tokens.front() {
+            self.tokens.pop_front();
+        };
+
         visitor.visit_enum(Enum::new(self))
     }
 
@@ -551,7 +553,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let token = self
             .tokens
-            .next()
+            .pop_front()
             .ok_or_else(|| Error::Message("Reached end of input!".into()))?
             .into_string()
             .map_err(|t| Error::Message(format!("{t:?} is not an identifier")))?;
@@ -649,6 +651,7 @@ impl<'de, 'a> VariantAccess<'de> for Enum<'a, 'de> {
     where
         T: DeserializeSeed<'de>,
     {
+        self.de.tokens.pop_front();
         seed.deserialize(self.de)
     }
 

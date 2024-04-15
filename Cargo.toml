@@ -10,7 +10,6 @@ license = "0BSD"
 repository = "https://github.com/JoNil/libconfig-rs"
 
 [dependencies]
-generator = "0.7"
-indexmap = "1"
+indexmap = "2"
 nom = "7"
 serde = { version = "1", features = ["derive"] }
