@@ -1,5 +1,7 @@
 extern crate libconfig_rs;
 
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
@@ -185,5 +187,22 @@ fn test7() {
         assert_eq!(t.a, TestEnum1::C);
         assert_eq!(t.b, TestEnum2::C("3".to_owned()));
         assert_eq!(t.c, TestEnum3::C { c: "3".to_owned() });
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+struct Test8 {
+    a: HashMap<i32, String>,
+}
+
+#[test]
+fn test8() {
+    {
+        let config = r#"config : {
+            a : ( (1, "one"), (2, "two") );
+        };"#;
+        let t = libconfig_rs::serde::deserialize::from_str::<Test8>(config).unwrap();
+        assert_eq!(t.a[&1], "one");
+        assert_eq!(t.a[&2], "two");
     }
 }
