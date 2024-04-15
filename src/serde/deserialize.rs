@@ -4,7 +4,7 @@ use serde::{
     de::{self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor},
     Deserialize,
 };
-use std::{collections::VecDeque, marker::PhantomData};
+use std::{collections::VecDeque, marker::PhantomData, str::FromStr};
 
 // Example
 // https://serde.rs/data-format.html

@@ -1,4 +1,5 @@
 use libconfig_rs::{ArrayType, Value};
+use std::str::FromStr;
 
 #[test]
 fn test_empty() {

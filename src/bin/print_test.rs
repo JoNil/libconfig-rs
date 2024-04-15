@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, str::FromStr};
 
 fn main() {
     let config = include_str!("../../tests/2.vproj");

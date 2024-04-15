@@ -4,7 +4,7 @@ use nom::{
     error::{ErrorKind, ParseError, VerboseError},
     Finish,
 };
-use std::fmt::Write;
+use std::{fmt::Write, str::FromStr};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ArrayType {
@@ -22,14 +22,28 @@ pub enum Value {
     Object(IndexMap<String, Value>),
 }
 
-impl Value {
-    #[allow(clippy::should_implement_trait)]
-    pub fn from_str(input: &str) -> Result<Value, VerboseError<&str>> {
+impl ToString for Value {
+    fn to_string(&self) -> String {
+        let mut res = String::new();
+        write!(&mut res, "config : ").unwrap();
+        printer::print(&mut res, self, 4);
+        write!(&mut res, ";").unwrap();
+        res
+    }
+}
+
+impl FromStr for Value {
+    type Err = String;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
         parser::root::<VerboseError<&str>>(input)
             .finish()
             .map(|(_, o)| o)
+            .map_err(|e| format!("{e}"))
     }
+}
 
+impl Value {
     pub fn obj_from_str(input: &str) -> Result<IndexMap<String, Value>, VerboseError<&str>> {
         parser::root::<VerboseError<&str>>(input)
             .finish()
@@ -40,14 +54,6 @@ impl Value {
                     ErrorKind::Fail,
                 )),
             })
-    }
-
-    pub fn to_string(&self) -> String {
-        let mut res = String::new();
-        write!(&mut res, "config : ").unwrap();
-        printer::print(&mut res, self, 4);
-        write!(&mut res, ";").unwrap();
-        res
     }
 
     #[inline]
