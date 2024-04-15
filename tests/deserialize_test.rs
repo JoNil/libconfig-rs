@@ -1,8 +1,6 @@
 extern crate libconfig_rs;
-
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Deserialize)]
 struct Test1 {

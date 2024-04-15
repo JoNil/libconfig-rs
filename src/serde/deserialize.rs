@@ -501,7 +501,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             .into_count()
             .map_err(|t| Error::Message(format!("Expected field count, got {t:?}")))?;
 
-        visitor.visit_map(MapAccessor {
+        visitor.visit_map(StructAccessor {
             de: self,
             remaining: count,
         })
@@ -566,6 +566,34 @@ impl<'de, 'a> SeqAccess<'de> for SeqAccessor<'a, 'de> {
     }
 }
 
+struct StructAccessor<'a, 'de: 'a> {
+    de: &'a mut Deserializer<'de>,
+    remaining: usize,
+}
+
+impl<'de, 'a> MapAccess<'de> for StructAccessor<'a, 'de> {
+    type Error = Error;
+
+    fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
+    where
+        K: DeserializeSeed<'de>,
+    {
+        if self.remaining > 0 {
+            self.remaining -= 1;
+            seed.deserialize(&mut *self.de).map(Some)
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
+    where
+        V: DeserializeSeed<'de>,
+    {
+        seed.deserialize(&mut *self.de)
+    }
+}
+
 struct MapAccessor<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
     remaining: usize,
@@ -580,6 +608,20 @@ impl<'de, 'a> MapAccess<'de> for MapAccessor<'a, 'de> {
     {
         if self.remaining > 0 {
             self.remaining -= 1;
+            let count = self
+                .de
+                .tokens
+                .pop_front()
+                .ok_or_else(|| Error::Message("Reached end of input!".into()))?
+                .into_count()
+                .map_err(|t| Error::Message(format!("{t:?} is not a count")))?;
+
+            if count != 2 {
+                return Err(Error::Message(
+                    "Map does not contain list of key value pairs".into(),
+                ));
+            }
+
             seed.deserialize(&mut *self.de).map(Some)
         } else {
             Ok(None)
@@ -646,6 +688,6 @@ impl<'de, 'a> VariantAccess<'de> for Enum<'a, 'de> {
     where
         V: Visitor<'de>,
     {
-        de::Deserializer::deserialize_map(self.de, visitor)
+        de::Deserializer::deserialize_struct(self.de, "", &[], visitor)
     }
 }
