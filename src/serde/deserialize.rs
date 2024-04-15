@@ -95,7 +95,7 @@ pub fn from_str<'a, T>(s: &'a str) -> Result<T, Error>
 where
     T: Deserialize<'a>,
 {
-    let value = crate::from_str(s).map_err(|e| Error::Message(format!("{e:?}")))?;
+    let value = crate::Value::from_str(s).map_err(|e| Error::Message(format!("{e:?}")))?;
 
     let mut tokens = VecDeque::new();
 

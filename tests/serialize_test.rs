@@ -18,8 +18,8 @@ fn test_integer() {
         c: 3,
         d: 4,
     };
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
 
@@ -39,8 +39,8 @@ fn test_unsigned_integer() {
         c: 3,
         d: 4,
     };
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
 
@@ -53,8 +53,8 @@ struct TestFloat {
 #[test]
 fn test_float() {
     let test = TestFloat { a: -3.0, b: 4.0 };
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
 
@@ -67,8 +67,8 @@ struct TestBool {
 #[test]
 fn test_bool() {
     let test = TestBool { a: true, b: false };
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
 
@@ -81,8 +81,8 @@ struct TestChar {
 #[test]
 fn test_char() {
     let test = TestChar { a: 'a', b: ' ' };
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
 
@@ -98,8 +98,8 @@ fn test_string() {
         a: "".to_string(),
         b: "THIS IS A STRING".to_string(),
     };
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
 
@@ -119,8 +119,8 @@ fn test_array() {
         c: vec![1, 2],
         d: vec![1.1, 2.2, 3.0],
     };
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
 
@@ -138,8 +138,8 @@ fn test_option() {
         b: None,
         c: None,
     };
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
 
@@ -151,8 +151,8 @@ struct TestUnit {
 #[test]
 fn test_unit() {
     let test = TestUnit { a: () };
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
 
@@ -170,8 +170,8 @@ fn test_tuple() {
         b: (Struct { a: 42, b: 42.2 }, 42),
         c: (0.5, 42, false),
     };
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
 
@@ -194,8 +194,8 @@ fn test_hashmap() {
     b.insert(35, "vb2".to_string());
     c.insert("kc".to_string(), 42);
     let test = TestHashmap { a, b, c };
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
 
@@ -229,8 +229,8 @@ fn test_struct() {
             a: Struct { a: 0, b: 42.2 },
         },
     };
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
 
@@ -262,8 +262,8 @@ fn test_enum_variants() {
             a: Struct { a: 0, b: 42.2 },
         }),
     };
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }
 
@@ -272,7 +272,7 @@ fn test_enum() {
     let test = Enum::E(StructInStruct {
         a: Struct { a: 0, b: 42.2 },
     });
-    let ser = libconfig_rs::serde::serialize::to_string(&test).unwrap();
-    let der = libconfig_rs::serde::deserialize::from_str(&ser).unwrap();
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    let der = libconfig_rs::from_str(&ser).unwrap();
     assert_eq!(test, der);
 }

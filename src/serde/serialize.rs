@@ -1,6 +1,5 @@
-use serde::{ser, Serialize};
-
 use super::error::Error;
+use serde::{ser, Serialize};
 
 #[derive(Clone)]
 pub struct Serializer {

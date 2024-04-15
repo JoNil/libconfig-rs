@@ -17,7 +17,7 @@ fn test1() {
         c : 3.3;
     };
     "#;
-    let res = libconfig_rs::serde::deserialize::from_str::<Test1>(config).unwrap();
+    let res = libconfig_rs::from_str::<Test1>(config).unwrap();
 
     assert!(res.a == 1);
     assert!(res.b == 2);
@@ -30,7 +30,7 @@ struct Test2(i32);
 #[test]
 fn test2() {
     let config = r#"config : ( 5 );"#;
-    let res = libconfig_rs::serde::deserialize::from_str::<Test2>(config).unwrap();
+    let res = libconfig_rs::from_str::<Test2>(config).unwrap();
 
     assert!(res.0 == 5);
 }
@@ -41,7 +41,7 @@ struct Test3(i32, f32);
 #[test]
 fn test3() {
     let config = r#"config : ( 5, 1.0 );"#;
-    let res = libconfig_rs::serde::deserialize::from_str::<Test3>(config).unwrap();
+    let res = libconfig_rs::from_str::<Test3>(config).unwrap();
 
     assert!(res.0 == 5);
     assert!(res.1 == 1.0);
@@ -58,7 +58,7 @@ fn test4() {
         a : ( 1, 2, 3 );
     };
     "#;
-    let res = libconfig_rs::serde::deserialize::from_str::<Test4>(config).unwrap();
+    let res = libconfig_rs::from_str::<Test4>(config).unwrap();
 
     assert!(res.a[0] == 1);
     assert!(res.a[1] == 2);
@@ -77,7 +77,7 @@ fn test5() {
             a : ( );
         };
         "#;
-        let res = libconfig_rs::serde::deserialize::from_str::<Test5>(config).unwrap();
+        let res = libconfig_rs::from_str::<Test5>(config).unwrap();
 
         assert!(res.a.is_none());
     }
@@ -87,7 +87,7 @@ fn test5() {
             a : ( 2 );
         };
         "#;
-        let res = libconfig_rs::serde::deserialize::from_str::<Test5>(config).unwrap();
+        let res = libconfig_rs::from_str::<Test5>(config).unwrap();
 
         assert!(res.a == Some(2));
     }
@@ -105,7 +105,7 @@ fn test6() {
             _a : ();
         };
         "#;
-        libconfig_rs::serde::deserialize::from_str::<Test6>(config).unwrap();
+        libconfig_rs::from_str::<Test6>(config).unwrap();
     }
 }
 
@@ -149,7 +149,7 @@ fn test7() {
                 A : { a : 1; };
             };
         };"#;
-        let t = libconfig_rs::serde::deserialize::from_str::<Test7>(config).unwrap();
+        let t = libconfig_rs::from_str::<Test7>(config).unwrap();
         assert_eq!(t.a, TestEnum1::A);
         assert_eq!(t.b, TestEnum2::A(1));
         assert_eq!(t.c, TestEnum3::A { a: 1 });
@@ -165,7 +165,7 @@ fn test7() {
                 B : { b : 2.0; };
             };
         };"#;
-        let t = libconfig_rs::serde::deserialize::from_str::<Test7>(config).unwrap();
+        let t = libconfig_rs::from_str::<Test7>(config).unwrap();
         assert_eq!(t.a, TestEnum1::B);
         assert_eq!(t.b, TestEnum2::B(2.0));
         assert_eq!(t.c, TestEnum3::B { b: 2.0 });
@@ -181,7 +181,7 @@ fn test7() {
                 C : { c : "3"; };
             };
         };"#;
-        let t = libconfig_rs::serde::deserialize::from_str::<Test7>(config).unwrap();
+        let t = libconfig_rs::from_str::<Test7>(config).unwrap();
         assert_eq!(t.a, TestEnum1::C);
         assert_eq!(t.b, TestEnum2::C("3".to_owned()));
         assert_eq!(t.c, TestEnum3::C { c: "3".to_owned() });
@@ -199,7 +199,7 @@ fn test8() {
         let config = r#"config : {
             a : ( (1, "one"), (2, "two") );
         };"#;
-        let t = libconfig_rs::serde::deserialize::from_str::<Test8>(config).unwrap();
+        let t = libconfig_rs::from_str::<Test8>(config).unwrap();
         assert_eq!(t.a[&1], "one");
         assert_eq!(t.a[&2], "two");
     }
