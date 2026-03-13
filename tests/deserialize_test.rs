@@ -95,14 +95,15 @@ fn test5() {
 
 #[derive(Deserialize)]
 struct Test6 {
-    _a: (),
+    #[serde(rename = "*a")]
+    a: (),
 }
 
 #[test]
 fn test6() {
     {
         let config = r#"config : {
-            _a : ();
+            *a : ();
         };
         "#;
         libconfig_rs::from_str::<Test6>(config).unwrap();

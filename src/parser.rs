@@ -2,7 +2,7 @@ use crate::{ArrayType, Value};
 use indexmap::IndexMap;
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while},
+    bytes::complete::{tag, tag_no_case, take_while},
     character::{
         complete::{alpha1, char, one_of},
         streaming::alphanumeric1,
@@ -22,7 +22,10 @@ fn sp<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
 }
 
 fn boolean<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, bool, E> {
-    alt((value(true, tag("true")), value(false, tag("false"))))(input)
+    alt((
+        value(true, tag_no_case("true")),
+        value(false, tag_no_case("false")),
+    ))(input)
 }
 
 fn number<'a, E: ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>>(
@@ -49,8 +52,8 @@ fn key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     context(
         "ident",
         recognize(pair(
-            alt((alpha1, tag("_"))),
-            many0_count(alt((alphanumeric1, tag("_")))),
+            alt((alpha1, tag("*"))),
+            many0_count(alt((alphanumeric1, tag("_"), tag("-"), tag("*")))),
         )),
     )(i)
 }
@@ -117,7 +120,7 @@ fn key_value<
     terminated(
         separated_pair(
             preceded(sp, key),
-            cut(preceded(sp, char(':'))),
+            cut(preceded(sp, one_of("=:"))),
             libconfig_value,
         ),
         tag(";"),

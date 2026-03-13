@@ -3,7 +3,7 @@ config : {
         next_scene_id : 1;
         scenes : ( {
                 scene_id : 0;
-                uuid : "6146405e-603e-40ef-8044-3a5131112d15";
+                uuid = "6146405e-603e-40ef-8044-3a5131112d15";
                 root_entity : {
                     uuid : "049d80f9-517e-460e-86c1-0325cc86cb5d";
                     children : ( {
@@ -28,12 +28,12 @@ config : {
                             };
                             raw_recorder_settings : {
                                 time_limit_sec : 300;
-                                use_ring_buffer : true;
-                                time_based_ring_buffer : true;
+                                use_ring_buffer : True;
+                                time_based_ring_buffer : trUe;
                             };
                             realtime_audio_settings : {
-                                auto_start_sender : false;
-                                use_default_capture_device : true;
+                                auto_start_sender : False;
+                                use_default_capture_device : truE;
                             };
                             net_settings : {
                                 links : ( {
