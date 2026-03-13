@@ -4,6 +4,17 @@ use serde::{ser, Serialize};
 #[derive(Clone)]
 pub struct Serializer {
     output: String,
+    indent: usize,
+    /// Stack tracking whether each struct/map level emitted braces
+    braces_stack: Vec<bool>,
+}
+
+impl Serializer {
+    fn write_indent(&mut self) {
+        for _ in 0..self.indent {
+            self.output.push(' ');
+        }
+    }
 }
 
 pub fn to_string<T>(value: &T) -> Result<String, Error>
@@ -12,20 +23,17 @@ where
 {
     let mut serializer = Serializer {
         output: String::new(),
+        indent: 4,
+        braces_stack: Vec::new(),
     };
+    serializer.output += "config : ";
     value.serialize(&mut serializer)?;
-
-    let mut out = String::new();
-    out += "config : ";
-    out += &serializer.output;
-    out += ";";
-
-    Ok(out)
+    serializer.output += ";\n";
+    Ok(serializer.output)
 }
 
 impl<'a> ser::Serializer for &'a mut Serializer {
     type Ok = ();
-
     type Error = Error;
 
     type SerializeSeq = Self;
@@ -42,45 +50,50 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
-        self.serialize_i64(i64::from(v))
+        self.serialize_i32(i32::from(v))
     }
 
     fn serialize_i16(self, v: i16) -> Result<Self::Ok, Self::Error> {
-        self.serialize_i64(i64::from(v))
+        self.serialize_i32(i32::from(v))
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        self.serialize_i64(i64::from(v))
+        self.output += &v.to_string();
+        Ok(())
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {
         self.output += &v.to_string();
+        self.output += "L";
         Ok(())
     }
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u64(u64::from(v))
+        self.serialize_u32(u32::from(v))
     }
 
     fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u64(u64::from(v))
+        self.serialize_u32(u32::from(v))
     }
 
     fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u64(u64::from(v))
-    }
-
-    fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
         self.output += &v.to_string();
         Ok(())
     }
 
+    fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
+        self.output += &v.to_string();
+        self.output += "L";
+        Ok(())
+    }
+
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
-        self.serialize_f64(f64::from(v))
+        self.output += &format!("{v:?}");
+        Ok(())
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
-        self.output += &format!("{:.3}", v);
+        self.output += &format!("{v:?}");
         Ok(())
     }
 
@@ -100,9 +113,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        self.output += "[ ";
-        self.output += " ]";
-
+        self.output += "[ ]";
         Ok(())
     }
 
@@ -113,21 +124,16 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         self.output += "[ ";
         value.serialize(&mut *self)?;
         self.output += " ]";
-
         Ok(())
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        self.output += "[ ";
-        self.output += " ]";
-
+        self.output += "[ ]";
         Ok(())
     }
 
     fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
-        self.output += "[ ";
-        self.output += " ]";
-
+        self.output += "[ ]";
         Ok(())
     }
 
@@ -137,41 +143,37 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         _variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        self.output += &format!("\"{}\"", variant);
-
+        self.output += &format!("\"{variant}\"");
         Ok(())
     }
 
     fn serialize_newtype_struct<T: ?Sized>(
         self,
         _name: &'static str,
-        _value: &T,
+        value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: Serialize,
     {
-        unimplemented!()
+        value.serialize(self)
     }
 
     fn serialize_newtype_variant<T: ?Sized>(
         self,
         _name: &'static str,
         _variant_index: u32,
-        variant: &'static str,
+        _variant: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: Serialize,
     {
-        self.output += &format!("{{ {} : ( ", variant);
-        value.serialize(&mut *self)?;
-        self.output += " ); }";
-
-        Ok(())
+        value.serialize(&mut *self)
     }
 
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
         self.output += "( ";
+        self.indent += 4;
         Ok(self)
     }
 
@@ -199,16 +201,21 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        self.output += "( ";
+        // Maps (from #[serde(flatten)]) are rendered as libconfig groups, same as structs
+        self.output += "{\n";
+        self.indent += 4;
+        self.braces_stack.push(true);
         Ok(self)
     }
 
     fn serialize_struct(
         self,
-        name: &'static str,
+        _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        self.output += "{ ";
+        self.output += "{\n";
+        self.indent += 4;
+        self.braces_stack.push(true);
         Ok(self)
     }
 
@@ -216,20 +223,18 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         self,
         _name: &'static str,
         _variant_index: u32,
-        variant: &'static str,
+        _variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        self.output += "{ ";
-        self.output += variant;
-        self.output += " : { ";
-
+        self.output += "{\n";
+        self.indent += 4;
+        self.braces_stack.push(true);
         Ok(self)
     }
 }
 
 impl<'a> ser::SerializeSeq for &'a mut Serializer {
     type Ok = ();
-
     type Error = Error;
 
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
@@ -244,7 +249,7 @@ impl<'a> ser::SerializeSeq for &'a mut Serializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        // self.output.pop(); // Remove last semicolon and space
+        self.indent -= 4;
         self.output += " )";
         Ok(())
     }
@@ -252,7 +257,6 @@ impl<'a> ser::SerializeSeq for &'a mut Serializer {
 
 impl<'a> ser::SerializeTuple for &'a mut Serializer {
     type Ok = ();
-
     type Error = Error;
 
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
@@ -274,7 +278,6 @@ impl<'a> ser::SerializeTuple for &'a mut Serializer {
 
 impl<'a> ser::SerializeTupleStruct for &'a mut Serializer {
     type Ok = ();
-
     type Error = Error;
 
     fn serialize_field<T: ?Sized>(&mut self, _value: &T) -> Result<(), Self::Error>
@@ -291,7 +294,6 @@ impl<'a> ser::SerializeTupleStruct for &'a mut Serializer {
 
 impl<'a> ser::SerializeTupleVariant for &'a mut Serializer {
     type Ok = ();
-
     type Error = Error;
 
     fn serialize_field<T: ?Sized>(&mut self, _value: &T) -> Result<(), Self::Error>
@@ -308,21 +310,24 @@ impl<'a> ser::SerializeTupleVariant for &'a mut Serializer {
 
 impl<'a> ser::SerializeMap for &'a mut Serializer {
     type Ok = ();
-
     type Error = Error;
 
     fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<(), Self::Error>
     where
         T: Serialize,
     {
-        if !self.output.ends_with("( ") {
-            self.output += ", ( ";
-        } else {
-            self.output += "( ";
-        }
+        // Capture the key string by serializing into buffer and extracting
+        let start = self.output.len();
         key.serialize(&mut **self)?;
+        let raw_key = self.output[start..].to_string();
+        self.output.truncate(start);
 
-        self.output += " , ";
+        // Strip quotes from key (map keys from flatten come as strings)
+        let bare_key = raw_key.trim_matches('"');
+
+        self.write_indent();
+        self.output += bare_key;
+        self.output += " : ";
         Ok(())
     }
 
@@ -331,20 +336,22 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
         T: Serialize,
     {
         value.serialize(&mut **self)?;
-        self.output += " )";
-
+        self.output += ";\n";
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.output += " )";
+        if let Some(true) = self.braces_stack.pop() {
+            self.indent -= 4;
+            self.write_indent();
+            self.output += "}";
+        }
         Ok(())
     }
 }
 
 impl<'a> ser::SerializeStruct for &'a mut Serializer {
     type Ok = ();
-
     type Error = Error;
 
     fn serialize_field<T: ?Sized>(
@@ -355,23 +362,26 @@ impl<'a> ser::SerializeStruct for &'a mut Serializer {
     where
         T: Serialize,
     {
+        self.write_indent();
         self.output += key;
         self.output += " : ";
         value.serialize(&mut **self)?;
-        self.output += "; ";
-
+        self.output += ";\n";
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.output += " }";
+        if let Some(true) = self.braces_stack.pop() {
+            self.indent -= 4;
+            self.write_indent();
+            self.output += "}";
+        }
         Ok(())
     }
 }
 
 impl<'a> ser::SerializeStructVariant for &'a mut Serializer {
     type Ok = ();
-
     type Error = Error;
 
     fn serialize_field<T: ?Sized>(
@@ -382,16 +392,20 @@ impl<'a> ser::SerializeStructVariant for &'a mut Serializer {
     where
         T: Serialize,
     {
+        self.write_indent();
         self.output += key;
         self.output += " : ";
         value.serialize(&mut **self)?;
-        self.output += "; ";
-
+        self.output += ";\n";
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.output += " }; }";
+        if let Some(true) = self.braces_stack.pop() {
+            self.indent -= 4;
+            self.write_indent();
+            self.output += "}";
+        }
         Ok(())
     }
 }
