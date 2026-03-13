@@ -1,8 +1,8 @@
 use super::error::Error;
 use crate::Value;
 use serde::{
-    de::{self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor},
     Deserialize,
+    de::{self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor},
 };
 use std::{collections::VecDeque, marker::PhantomData, str::FromStr};
 
@@ -54,10 +54,6 @@ impl Token {
             Token::SeqCount(v) | Token::MapCount(v) => Ok(v),
             _ => Err(self),
         }
-    }
-
-    fn is_map_count(&self) -> bool {
-        matches!(self, Token::MapCount(_))
     }
 }
 
@@ -625,6 +621,10 @@ impl<'de, 'a> MapAccess<'de> for MapAccessor<'a, 'de> {
     {
         if self.remaining > 0 {
             self.remaining -= 1;
+            // Consume inner tuple SeqCount when map entries are encoded as tuples
+            if let Some(Token::SeqCount(_)) = self.de.tokens.front() {
+                self.de.tokens.pop_front();
+            }
             seed.deserialize(&mut *self.de).map(Some)
         } else {
             Ok(None)

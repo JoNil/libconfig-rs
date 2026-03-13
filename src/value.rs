@@ -1,8 +1,8 @@
 use crate::{parser, printer};
 use indexmap::IndexMap;
 use nom::{
-    error::{ErrorKind, ParseError, VerboseError},
     Finish,
+    error::{ErrorKind, ParseError},
 };
 use std::{fmt, str::FromStr};
 
@@ -36,7 +36,7 @@ impl FromStr for Value {
     type Err = String;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        parser::root::<VerboseError<&str>>(input)
+        parser::root::<nom::error::Error<&str>>(input)
             .finish()
             .map(|(_, o)| o)
             .map_err(|e| format!("{e}"))
@@ -44,12 +44,12 @@ impl FromStr for Value {
 }
 
 impl Value {
-    pub fn obj_from_str(input: &str) -> Result<IndexMap<String, Value>, VerboseError<&str>> {
-        parser::root::<VerboseError<&str>>(input)
+    pub fn obj_from_str(input: &str) -> Result<IndexMap<String, Value>, nom::error::Error<&str>> {
+        parser::root::<nom::error::Error<&str>>(input)
             .finish()
             .and_then(|(_, o)| match o {
                 Value::Object(map) => Ok(map),
-                _ => Err(VerboseError::from_error_kind(
+                _ => Err(nom::error::Error::from_error_kind(
                     "Config did not have a object in the root",
                     ErrorKind::Fail,
                 )),

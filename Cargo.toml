@@ -1,7 +1,7 @@
 [package]
 name = "libconfig-rs"
 version = "3.0.0"
-edition = "2021"
+edition = "2024"
 
 description = "libconfig parser in rust"
 documentation = "https://docs.rs/libconfig-rs"
@@ -11,5 +11,5 @@ repository = "https://github.com/JoNil/libconfig-rs"
 
 [dependencies]
 indexmap = "2"
-nom = "7"
+nom = "8"
 serde = { version = "1", features = ["derive"] }

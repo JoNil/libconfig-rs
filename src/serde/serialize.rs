@@ -1,5 +1,5 @@
 use super::error::Error;
-use serde::{ser, Serialize};
+use serde::{Serialize, ser};
 
 #[derive(Clone)]
 pub struct Serializer {
@@ -32,7 +32,6 @@ where
     Ok(serializer.output)
 }
 
-#[allow(clippy::multiple_bound_locations)]
 impl ser::Serializer for &mut Serializer {
     type Ok = ();
     type Error = Error;
@@ -118,9 +117,9 @@ impl ser::Serializer for &mut Serializer {
         Ok(())
     }
 
-    fn serialize_some<T: ?Sized>(self, value: &T) -> Result<Self::Ok, Self::Error>
+    fn serialize_some<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         self.output += "[ ";
         value.serialize(&mut *self)?;
@@ -148,18 +147,18 @@ impl ser::Serializer for &mut Serializer {
         Ok(())
     }
 
-    fn serialize_newtype_struct<T: ?Sized>(
+    fn serialize_newtype_struct<T>(
         self,
         _name: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         value.serialize(self)
     }
 
-    fn serialize_newtype_variant<T: ?Sized>(
+    fn serialize_newtype_variant<T>(
         self,
         _name: &'static str,
         _variant_index: u32,
@@ -167,7 +166,7 @@ impl ser::Serializer for &mut Serializer {
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         self.output += "{\n";
         self.indent += 4;
@@ -247,14 +246,13 @@ impl ser::Serializer for &mut Serializer {
     }
 }
 
-#[allow(clippy::multiple_bound_locations)]
 impl ser::SerializeSeq for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
+    fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         if !self.output.ends_with("( ") {
             self.output += ", ";
@@ -269,14 +267,13 @@ impl ser::SerializeSeq for &mut Serializer {
     }
 }
 
-#[allow(clippy::multiple_bound_locations)]
 impl ser::SerializeTuple for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
+    fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         if !self.output.ends_with("[ ") {
             self.output += ", ";
@@ -291,14 +288,13 @@ impl ser::SerializeTuple for &mut Serializer {
     }
 }
 
-#[allow(clippy::multiple_bound_locations)]
 impl ser::SerializeTupleStruct for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_field<T: ?Sized>(&mut self, _value: &T) -> Result<(), Self::Error>
+    fn serialize_field<T>(&mut self, _value: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         unimplemented!()
     }
@@ -308,14 +304,13 @@ impl ser::SerializeTupleStruct for &mut Serializer {
     }
 }
 
-#[allow(clippy::multiple_bound_locations)]
 impl ser::SerializeTupleVariant for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_field<T: ?Sized>(&mut self, _value: &T) -> Result<(), Self::Error>
+    fn serialize_field<T>(&mut self, _value: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         unimplemented!()
     }
@@ -325,14 +320,13 @@ impl ser::SerializeTupleVariant for &mut Serializer {
     }
 }
 
-#[allow(clippy::multiple_bound_locations)]
 impl ser::SerializeMap for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<(), Self::Error>
+    fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         self.write_indent();
         let start = self.output.len();
@@ -347,9 +341,9 @@ impl ser::SerializeMap for &mut Serializer {
         Ok(())
     }
 
-    fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
+    fn serialize_value<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         value.serialize(&mut **self)?;
         self.output += ";\n";
@@ -366,18 +360,13 @@ impl ser::SerializeMap for &mut Serializer {
     }
 }
 
-#[allow(clippy::multiple_bound_locations)]
 impl ser::SerializeStruct for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_field<T: ?Sized>(
-        &mut self,
-        key: &'static str,
-        value: &T,
-    ) -> Result<(), Self::Error>
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         self.write_indent();
         self.output += key;
@@ -397,18 +386,13 @@ impl ser::SerializeStruct for &mut Serializer {
     }
 }
 
-#[allow(clippy::multiple_bound_locations)]
 impl ser::SerializeStructVariant for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_field<T: ?Sized>(
-        &mut self,
-        key: &'static str,
-        value: &T,
-    ) -> Result<(), Self::Error>
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         self.write_indent();
         self.output += key;

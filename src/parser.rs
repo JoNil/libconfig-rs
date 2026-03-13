@@ -1,31 +1,29 @@
 use crate::{ArrayType, Value};
 use indexmap::IndexMap;
 use nom::{
+    IResult, Parser,
     branch::alt,
     bytes::complete::{tag, tag_no_case, take_while},
-    character::{
-        complete::{alpha1, char, one_of},
-        streaming::alphanumeric1,
-    },
+    character::complete::{alpha1, alphanumeric1, char, one_of},
     combinator::{cut, map, map_res, opt, recognize, value},
-    error::{context, ContextError, FromExternalError, ParseError},
+    error::{ContextError, FromExternalError, ParseError, context},
     multi::{many0_count, many1, separated_list0},
     number::complete::double,
     sequence::{delimited, pair, preceded, separated_pair, terminated},
-    IResult,
 };
 mod string;
 
 fn sp<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
     let chars = " \t\r\n";
-    take_while(move |c| chars.contains(c))(i)
+    take_while(move |c| chars.contains(c)).parse(i)
 }
 
 fn boolean<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, bool, E> {
     alt((
         value(true, tag_no_case("true")),
         value(false, tag_no_case("false")),
-    ))(input)
+    ))
+    .parse(input)
 }
 
 fn number<'a, E: ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>>(
@@ -43,7 +41,8 @@ fn number<'a, E: ParseError<&'a str> + FromExternalError<&'a str, std::num::Pars
             ),
         )),
         opt(tag("L")),
-    )(i)
+    )
+    .parse(i)
 }
 
 fn key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
@@ -55,7 +54,8 @@ fn key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
             alt((alpha1, tag("*"))),
             many0_count(alt((alphanumeric1, tag("_"), tag("-"), tag("*")))),
         )),
-    )(i)
+    )
+    .parse(i)
 }
 
 fn string<
@@ -66,7 +66,7 @@ fn string<
 >(
     i: &'a str,
 ) -> IResult<&'a str, String, E> {
-    context("string", string::parse)(i)
+    context("string", string::parse).parse(i)
 }
 
 fn array<
@@ -86,7 +86,8 @@ fn array<
                 preceded(sp, char(']')),
             )),
         ),
-    )(i)
+    )
+    .parse(i)
 }
 
 fn list<
@@ -106,7 +107,8 @@ fn list<
                 preceded(sp, char(')')),
             )),
         ),
-    )(i)
+    )
+    .parse(i)
 }
 
 fn key_value<
@@ -124,7 +126,8 @@ fn key_value<
             libconfig_value,
         ),
         tag(";"),
-    )(i)
+    )
+    .parse(i)
 }
 
 fn hash<
@@ -149,7 +152,8 @@ fn hash<
                 preceded(sp, char('}')),
             )),
         ),
-    )(i)
+    )
+    .parse(i)
 }
 
 fn libconfig_value<
@@ -171,7 +175,8 @@ fn libconfig_value<
             map(number, Value::Int),
             map(double, Value::Float),
         )),
-    )(i)
+    )
+    .parse(i)
 }
 
 pub fn root<
@@ -182,5 +187,5 @@ pub fn root<
 >(
     i: &'a str,
 ) -> IResult<&'a str, Value, E> {
-    delimited(sp, map(key_value, |(_, v)| v), opt(sp))(i)
+    delimited(sp, map(key_value, |(_, v)| v), opt(sp)).parse(i)
 }
