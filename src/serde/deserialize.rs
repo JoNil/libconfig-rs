@@ -16,7 +16,8 @@ enum Token {
     Int(i64),
     Float(f64),
     String(String),
-    Count(usize),
+    SeqCount(usize),
+    MapCount(usize),
 }
 
 impl Token {
@@ -50,9 +51,13 @@ impl Token {
 
     fn into_count(self) -> Result<usize, Token> {
         match self {
-            Token::Count(v) => Ok(v),
+            Token::SeqCount(v) | Token::MapCount(v) => Ok(v),
             _ => Err(self),
         }
+    }
+
+    fn is_map_count(&self) -> bool {
+        matches!(self, Token::MapCount(_))
     }
 }
 
@@ -71,13 +76,13 @@ fn flatten(res: &mut VecDeque<Token>, value: Value) {
             res.push_back(Token::String(s));
         }
         Value::Array(a, _) => {
-            res.push_back(Token::Count(a.len()));
+            res.push_back(Token::SeqCount(a.len()));
             for v in a {
                 flatten(res, v)
             }
         }
         Value::Object(o) => {
-            res.push_back(Token::Count(o.len()));
+            res.push_back(Token::MapCount(o.len()));
             for (k, v) in o {
                 res.push_back(Token::String(k));
                 flatten(res, v)
@@ -112,11 +117,23 @@ where
 impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
     type Error = Error;
 
-    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        panic!("Format needs type hints!");
+        let token = self
+            .tokens
+            .front()
+            .ok_or_else(|| Error::Message("Reached end of input!".into()))?;
+
+        match token {
+            Token::Bool(_) => self.deserialize_bool(visitor),
+            Token::Int(_) => self.deserialize_i64(visitor),
+            Token::Float(_) => self.deserialize_f64(visitor),
+            Token::String(_) => self.deserialize_string(visitor),
+            Token::SeqCount(_) => self.deserialize_seq(visitor),
+            Token::MapCount(_) => self.deserialize_map(visitor),
+        }
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -516,7 +533,7 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        if let Some(Token::Count(_)) = self.tokens.front() {
+        if let Some(Token::SeqCount(_) | Token::MapCount(_)) = self.tokens.front() {
             self.tokens.pop_front();
         };
 
@@ -608,20 +625,6 @@ impl<'de, 'a> MapAccess<'de> for MapAccessor<'a, 'de> {
     {
         if self.remaining > 0 {
             self.remaining -= 1;
-            let count = self
-                .de
-                .tokens
-                .pop_front()
-                .ok_or_else(|| Error::Message("Reached end of input!".into()))?
-                .into_count()
-                .map_err(|t| Error::Message(format!("{t:?} is not a count")))?;
-
-            if count != 2 {
-                return Err(Error::Message(
-                    "Map does not contain list of key value pairs".into(),
-                ));
-            }
-
             seed.deserialize(&mut *self.de).map(Some)
         } else {
             Ok(None)
