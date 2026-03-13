@@ -23,7 +23,7 @@ where
 {
     let mut serializer = Serializer {
         output: String::new(),
-        indent: 4,
+        indent: 0,
         braces_stack: Vec::new(),
     };
     serializer.output += "config : ";
@@ -32,7 +32,8 @@ where
     Ok(serializer.output)
 }
 
-impl<'a> ser::Serializer for &'a mut Serializer {
+#[allow(clippy::multiple_bound_locations)]
+impl ser::Serializer for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -162,13 +163,23 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         self,
         _name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: Serialize,
     {
-        value.serialize(&mut *self)
+        self.output += "{\n";
+        self.indent += 4;
+        self.write_indent();
+        self.output += variant;
+        self.output += " : ( ";
+        value.serialize(&mut *self)?;
+        self.output += " );\n";
+        self.indent -= 4;
+        self.write_indent();
+        self.output += "}";
+        Ok(())
     }
 
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
@@ -201,7 +212,6 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        // Maps (from #[serde(flatten)]) are rendered as libconfig groups, same as structs
         self.output += "{\n";
         self.indent += 4;
         self.braces_stack.push(true);
@@ -223,17 +233,23 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         self,
         _name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         self.output += "{\n";
         self.indent += 4;
+        self.write_indent();
+        self.output += variant;
+        self.output += " : {\n";
+        self.indent += 4;
+        self.braces_stack.push(true);
         self.braces_stack.push(true);
         Ok(self)
     }
 }
 
-impl<'a> ser::SerializeSeq for &'a mut Serializer {
+#[allow(clippy::multiple_bound_locations)]
+impl ser::SerializeSeq for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -255,7 +271,8 @@ impl<'a> ser::SerializeSeq for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeTuple for &'a mut Serializer {
+#[allow(clippy::multiple_bound_locations)]
+impl ser::SerializeTuple for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -276,7 +293,8 @@ impl<'a> ser::SerializeTuple for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeTupleStruct for &'a mut Serializer {
+#[allow(clippy::multiple_bound_locations)]
+impl ser::SerializeTupleStruct for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -292,7 +310,8 @@ impl<'a> ser::SerializeTupleStruct for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeTupleVariant for &'a mut Serializer {
+#[allow(clippy::multiple_bound_locations)]
+impl ser::SerializeTupleVariant for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -308,7 +327,8 @@ impl<'a> ser::SerializeTupleVariant for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeMap for &'a mut Serializer {
+#[allow(clippy::multiple_bound_locations)]
+impl ser::SerializeMap for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -316,17 +336,15 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
     where
         T: Serialize,
     {
-        // Capture the key string by serializing into buffer and extracting
+        self.write_indent();
         let start = self.output.len();
         key.serialize(&mut **self)?;
-        let raw_key = self.output[start..].to_string();
-        self.output.truncate(start);
-
-        // Strip quotes from key (map keys from flatten come as strings)
-        let bare_key = raw_key.trim_matches('"');
-
-        self.write_indent();
-        self.output += bare_key;
+        // Strip quotes from string keys for libconfig group format
+        let key_part = self.output[start..].to_string();
+        if key_part.starts_with('"') && key_part.ends_with('"') && key_part.len() > 2 {
+            self.output.truncate(start);
+            self.output += &key_part[1..key_part.len() - 1];
+        }
         self.output += " : ";
         Ok(())
     }
@@ -350,7 +368,8 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeStruct for &'a mut Serializer {
+#[allow(clippy::multiple_bound_locations)]
+impl ser::SerializeStruct for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -380,7 +399,8 @@ impl<'a> ser::SerializeStruct for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeStructVariant for &'a mut Serializer {
+#[allow(clippy::multiple_bound_locations)]
+impl ser::SerializeStructVariant for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -401,7 +421,15 @@ impl<'a> ser::SerializeStructVariant for &'a mut Serializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
+        // Close inner struct brace
         if let Some(true) = self.braces_stack.pop() {
+            self.indent -= 4;
+            self.write_indent();
+            self.output += "}";
+        }
+        // Close outer variant wrapper brace
+        if let Some(true) = self.braces_stack.pop() {
+            self.output += ";\n";
             self.indent -= 4;
             self.write_indent();
             self.output += "}";

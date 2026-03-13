@@ -178,7 +178,7 @@ fn test_tuple() {
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 struct TestHashmap {
     a: HashMap<String, String>,
-    b: HashMap<i32, String>,
+    b: HashMap<String, String>,
     c: HashMap<String, i32>,
 }
 
@@ -190,8 +190,8 @@ fn test_hashmap() {
     a.insert("ka".to_string(), "va".to_string());
     a.insert("ka2".to_string(), "va2".to_string());
     a.insert("ka3".to_string(), "va3".to_string());
-    b.insert(42, "vb".to_string());
-    b.insert(35, "vb2".to_string());
+    b.insert("kb".to_string(), "vb".to_string());
+    b.insert("kb2".to_string(), "vb2".to_string());
     c.insert("kc".to_string(), 42);
     let test = TestHashmap { a, b, c };
     let ser = libconfig_rs::to_string(&test).unwrap();

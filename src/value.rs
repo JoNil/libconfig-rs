@@ -4,7 +4,7 @@ use nom::{
     error::{ErrorKind, ParseError, VerboseError},
     Finish,
 };
-use std::{fmt::Write, str::FromStr};
+use std::{fmt, str::FromStr};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ArrayType {
@@ -22,13 +22,13 @@ pub enum Value {
     Object(IndexMap<String, Value>),
 }
 
-impl ToString for Value {
-    fn to_string(&self) -> String {
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "config : ")?;
         let mut res = String::new();
-        write!(&mut res, "config : ").unwrap();
         printer::print(&mut res, self, 4);
-        write!(&mut res, ";").unwrap();
-        res
+        write!(f, "{res};")?;
+        Ok(())
     }
 }
 

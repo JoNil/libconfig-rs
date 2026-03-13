@@ -96,7 +96,7 @@ fn test5() {
 #[derive(Deserialize)]
 struct Test6 {
     #[serde(rename = "*a")]
-    a: (),
+    _a: (),
 }
 
 #[test]
