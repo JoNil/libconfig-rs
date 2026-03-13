@@ -184,7 +184,6 @@ impl ser::Serializer for &mut Serializer {
 
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
         self.output += "( ";
-        self.indent += 4;
         Ok(self)
     }
 
@@ -265,7 +264,6 @@ impl ser::SerializeSeq for &mut Serializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.indent -= 4;
         self.output += " )";
         Ok(())
     }
