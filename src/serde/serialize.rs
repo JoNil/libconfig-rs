@@ -208,7 +208,6 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        println!("Start Serializing struct: {name}\n");
         self.output += "{ ";
         Ok(self)
     }
