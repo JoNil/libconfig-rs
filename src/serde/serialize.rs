@@ -102,9 +102,18 @@ impl ser::Serializer for &mut Serializer {
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.output += "\"";
-        self.output += v;
-        self.output += "\"";
+        self.output.push('"');
+        for c in v.chars() {
+            match c {
+                '\\' => self.output.push_str("\\\\"),
+                '"' => self.output.push_str("\\\""),
+                '\n' => self.output.push_str("\\n"),
+                '\r' => self.output.push_str("\\r"),
+                '\t' => self.output.push_str("\\t"),
+                _ => self.output.push(c),
+            }
+        }
+        self.output.push('"');
         Ok(())
     }
 

@@ -102,6 +102,18 @@ fn test_string() {
     assert_eq!(test, der);
 }
 
+#[test]
+fn test_string_special_chars() {
+    let test = TestString {
+        a: r#"udpsrc port=50004 caps="application/x-rtp,media=video" ! depay"#.to_string(),
+        b: "back\\slash\ttab\nnewline\rcr".to_string(),
+    };
+    let ser = libconfig_rs::to_string(&test).unwrap();
+    assert!(ser.contains(r#"caps=\"application/x-rtp,media=video\""#));
+    let der: TestString = libconfig_rs::from_str(&ser).unwrap();
+    assert_eq!(test, der);
+}
+
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 struct TestArray {
     a: [i32; 2],
